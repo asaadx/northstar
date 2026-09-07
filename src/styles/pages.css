@@ -110,6 +110,18 @@
   text-align: right;
 }
 
+/* Development-only mode picker; removed with the comparison it serves. */
+.set-row__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.link-btn--on {
+  color: var(--amber);
+}
+
 .confirm {
   display: flex;
   align-items: center;

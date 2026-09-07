@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNorthstar } from "../store";
 import { DUR } from "../motion";
 import MilestoneEditor from "./MilestoneEditor";
+import { STRETCH_MODES, selectStretchMode, stretchMode } from "../stretch";
 
 export default function Settings() {
   const store = useNorthstar();
@@ -102,6 +103,29 @@ export default function Settings() {
           </AnimatePresence>
         </div>
       </div>
+
+      {import.meta.env.DEV && (
+        <div className="set-row">
+          <div className="set-row__text">
+            <div className="set-row__label">Stretch length</div>
+            <div className="set-row__note">
+              Development only. How a stretch&rsquo;s height follows its gap.
+            </div>
+          </div>
+          <div className="set-row__control set-row__modes">
+            {STRETCH_MODES.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                className={mode === stretchMode() ? "link-btn link-btn--on" : "link-btn"}
+                onClick={() => selectStretchMode(mode)}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <MilestoneEditor open={editorOpen} onClose={() => setEditorOpen(false)} />
     </div>

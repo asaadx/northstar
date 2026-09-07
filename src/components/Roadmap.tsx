@@ -130,6 +130,7 @@ export default function Roadmap() {
               markerSide={labelSideFor(milestones.length)}
               bendSide={oppositeSide(labelSideFor(milestones.length))}
               origin={false}
+              gap={null}
             />
           </div>
           {reversed.map((entry) => {
@@ -187,6 +188,7 @@ export default function Roadmap() {
                   markerSide={side}
                   bendSide={bendSide}
                   origin={entry.index === 0}
+                  gap={entry.milestone.gap}
                 />
               </div>
             );

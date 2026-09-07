@@ -113,16 +113,27 @@ export function dayKey(date: Date): string {
 export function createInitialState(): State {
   return {
     version: STATE_VERSION,
+    // Gaps sum to 365. Dense early, where the habit is youngest, then
+    // stretching out: day 3, 7, 14, 21, 30, 60, 90, 120, 150, 180, 240, 300, 365.
     milestones: [
       makeMilestone("Lonzo's Shawarma", "Extra garlic.", 3),
-      makeMilestone("120 Hz 1440p Monitor", "", 4),
+      makeMilestone("Cinema night", "", 4),
       makeMilestone("New running shoes", "", 7),
-      makeMilestone("Weekend trip", "Somewhere with no wifi.", 7),
+      makeMilestone("Steak dinner", "", 7),
+      makeMilestone("Concert tickets", "", 9),
+      makeMilestone("120 Hz 1440p Monitor", "", 30),
+      makeMilestone("Mechanical keyboard", "", 30),
+      makeMilestone("Noise-cancelling headphones", "", 30),
+      makeMilestone("Weekend trip", "Somewhere with no wifi.", 30),
+      makeMilestone("New phone", "", 30),
+      makeMilestone("Camera", "", 60),
+      makeMilestone("Road bike", "", 60),
+      makeMilestone("The trip abroad", "", 65),
     ],
     days: 0,
     lastCheckIn: null,
     run: 1,
-    northstar: "",
+    northstar: "One full year",
   };
 }
 

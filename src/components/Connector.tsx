@@ -19,6 +19,7 @@
 import { useEffect, useId, useState } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion } from "framer-motion";
 import { SPRING_SOFT } from "../motion";
+import { stretchHeight, stretchMode } from "../stretch";
 
 /** viewBox units, proportional to the `--connector-w` by `--connector-h` box. */
 const VB_W = 100;
@@ -67,6 +68,8 @@ type ConnectorProps = {
   bendSide: Side;
   /** This is the first stretch, so its lower end is where the road begins. */
   origin: boolean;
+  /** Days this stretch spans; null for the final stretch up to the northstar. */
+  gap: number | null;
 };
 
 /** Bottom-centre to top-centre, bowed to one side. Endpoints meet the nodes. */
@@ -84,6 +87,7 @@ export default function Connector({
   markerSide,
   bendSide,
   origin,
+  gap,
 }: ConnectorProps) {
   const reducedMotion = useReducedMotion();
   const rampId = useId();
@@ -104,6 +108,7 @@ export default function Connector({
    */
   const dotOffset = 2 - marked;
   const d = curve(bendSide);
+  const height = stretchHeight(gap, stretchMode());
 
   const dayValue = useMotionValue(days);
   const [displayDay, setDisplayDay] = useState(days);
@@ -128,7 +133,7 @@ export default function Connector({
     .join(" ");
 
   return (
-    <div className={className}>
+    <div className={className} style={{ height }}>
       <svg
         className="connector__svg"
         viewBox={`0 0 ${VB_W} ${VB_H}`}
