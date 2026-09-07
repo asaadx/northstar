@@ -14,7 +14,7 @@ export default function History() {
     return (
       <div className="page">
         <h1 className="page__title">History</h1>
-        <p className="page__empty">Nothing claimed yet. Your first reward unlocks after seven days.</p>
+        <p className="page__empty">Nothing claimed yet. Your first reward is still ahead.</p>
       </div>
     );
   }

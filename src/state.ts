@@ -17,8 +17,8 @@
  *    the history view.
  */
 
-export const DAYS_PER_MILESTONE = 7;
-export const STATE_VERSION = 6;
+export const DEFAULT_GAP = 7;
+export const STATE_VERSION = 7;
 
 export type Milestone = {
   id: string;
@@ -26,6 +26,8 @@ export type Milestone = {
   reward: string;
   /** Optional detail line, e.g. a budget or a condition. */
   note: string;
+  /** Days after the previous reward. At least 1; absolute days are the running sum. */
+  gap: number;
   /** Data URL for the reward's picture; null when none has been chosen. */
   image: string | null;
   /** ISO timestamp the reward was claimed; null while unclaimed. */
@@ -40,7 +42,7 @@ export type Milestone = {
 };
 
 /** Fields an edit may change. `image: null` clears an existing picture. */
-export type MilestonePatch = { reward?: string; note?: string; image?: string | null };
+export type MilestonePatch = { reward?: string; note?: string; gap?: number; image?: string | null };
 
 export type State = {
   version: typeof STATE_VERSION;
@@ -68,9 +70,9 @@ export type ActiveMilestone = {
 };
 
 export type Progress = {
-  /** Days completed toward the next reward, 0..7. */
+  /** Days completed toward the next reward, 0..required. */
   banked: number;
-  /** Always DAYS_PER_MILESTONE. */
+  /** Gap of the stretch being walked. */
   required: number;
   /** Days still needed, 0 when the roadmap is exhausted. */
   remaining: number;
@@ -85,11 +87,12 @@ export function newId(): string {
   return `m_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function makeMilestone(reward: string, note = ""): Milestone {
+export function makeMilestone(reward: string, note = "", gap = DEFAULT_GAP): Milestone {
   return {
     id: newId(),
     reward,
     note,
+    gap: Math.max(1, Math.floor(gap)),
     image: null,
     claimedAt: null,
     archived: false,
@@ -111,10 +114,10 @@ export function createInitialState(): State {
   return {
     version: STATE_VERSION,
     milestones: [
-      makeMilestone("Lonzo's Shawarma", "Extra garlic."),
-      makeMilestone("120 Hz 1440p Monitor", ""),
-      makeMilestone("New running shoes", ""),
-      makeMilestone("Weekend trip", "Somewhere with no wifi."),
+      makeMilestone("Lonzo's Shawarma", "Extra garlic.", 3),
+      makeMilestone("120 Hz 1440p Monitor", "", 4),
+      makeMilestone("New running shoes", "", 7),
+      makeMilestone("Weekend trip", "Somewhere with no wifi.", 7),
     ],
     days: 0,
     lastCheckIn: null,
@@ -127,18 +130,23 @@ export function createInitialState(): State {
 
 export function activeMilestones(state: State): ActiveMilestone[] {
   const active = state.milestones.filter((m) => !m.archived);
+  let requirement = 0;
   return active.map((milestone, index) => {
-    const requirement = (index + 1) * DAYS_PER_MILESTONE;
+    requirement += milestone.gap;
     const status: MilestoneStatus =
       milestone.claimedAt !== null ? "claimed" : state.days >= requirement ? "available" : "locked";
     return { milestone, index, requirement, status };
   });
 }
 
+/** The northstar's distance: every gap on the active roadmap, added up. */
+export function totalDays(state: State): number {
+  return state.milestones.reduce((sum, m) => (m.archived ? sum : sum + m.gap), 0);
+}
+
 /** How many active milestones the current day count has unlocked. */
 export function unlockedCount(state: State): number {
-  const active = state.milestones.filter((m) => !m.archived).length;
-  return Math.min(Math.floor(state.days / DAYS_PER_MILESTONE), active);
+  return activeMilestones(state).filter((entry) => state.days >= entry.requirement).length;
 }
 
 /** The nearest milestone whose requirement is still ahead, or null when the roadmap is exhausted. */
@@ -151,22 +159,27 @@ export function nextMilestone(state: State): ActiveMilestone | null {
  * act and deliberately does not gate this.
  */
 export function northstarReached(state: State): boolean {
-  const active = state.milestones.filter((m) => !m.archived).length;
-  return active > 0 && state.days >= active * DAYS_PER_MILESTONE;
+  const total = totalDays(state);
+  return total > 0 && state.days >= total;
 }
 
 /** Progress toward the next reward. */
 export function progress(state: State): Progress {
   const next = nextMilestone(state);
   if (next === null) {
-    return { banked: DAYS_PER_MILESTONE, required: DAYS_PER_MILESTONE, remaining: 0, fraction: 1 };
+    // Nothing left to walk. Report a finished stretch so `fraction` stays 1.
+    const entries = activeMilestones(state);
+    const last = entries[entries.length - 1];
+    const span = last === undefined ? 0 : last.milestone.gap;
+    return { banked: span, required: span, remaining: 0, fraction: 1 };
   }
 
-  const floor = next.requirement - DAYS_PER_MILESTONE;
-  const banked = Math.max(0, Math.min(DAYS_PER_MILESTONE, state.days - floor));
+  const required = next.milestone.gap;
+  const floor = next.requirement - required;
+  const banked = Math.max(0, Math.min(required, state.days - floor));
   const remaining = next.requirement - state.days;
-  const fraction = Math.max(0, Math.min(1, banked / DAYS_PER_MILESTONE));
-  return { banked, required: DAYS_PER_MILESTONE, remaining, fraction };
+  const fraction = required <= 0 ? 1 : Math.max(0, Math.min(1, banked / required));
+  return { banked, required, remaining, fraction };
 }
 
 export type HistoryGroup = {
@@ -278,8 +291,8 @@ export function resetStreak(state: State, now: Date): State {
 
 /* ---------------------------------------------------------- milestone edits */
 
-export function addMilestone(state: State, reward: string, note = ""): State {
-  return { ...state, milestones: [...state.milestones, makeMilestone(reward, note)] };
+export function addMilestone(state: State, reward: string, note = "", gap = DEFAULT_GAP): State {
+  return { ...state, milestones: [...state.milestones, makeMilestone(reward, note, gap)] };
 }
 
 export function updateMilestone(state: State, id: string, patch: MilestonePatch): State {
@@ -291,6 +304,7 @@ export function updateMilestone(state: State, id: string, patch: MilestonePatch)
             ...m,
             reward: patch.reward ?? m.reward,
             note: patch.note ?? m.note,
+            gap: patch.gap === undefined ? m.gap : Math.max(1, Math.floor(patch.gap)),
             // `null` clears the picture, so only `undefined` means "leave alone".
             image: patch.image !== undefined ? patch.image : m.image,
           }
@@ -344,6 +358,9 @@ export function moveMilestone(state: State, id: string, direction: -1 | 1): Stat
  * Versions up to 4 did not record a run's day count, so milestones archived by
  * them hydrate with `archivedDays: null` and their counts are unknowable.
  * Versions up to 5 had no northstar, so they hydrate with an empty one.
+ * Versions up to 6 had a fixed seven-day cadence with no stored gap, so their
+ * milestones hydrate at a gap of `DEFAULT_GAP` (7), which keeps every
+ * existing requirement exactly what it was.
  */
 type PersistedShape = Partial<State> & {
   days?: unknown;
@@ -366,6 +383,7 @@ export function hydrate(raw: unknown, now: Date): State {
             id: typeof m.id === "string" ? m.id : newId(),
             reward: m.reward,
             note: typeof m.note === "string" ? m.note : "",
+            gap: typeof m.gap === "number" && Number.isFinite(m.gap) ? Math.max(1, Math.floor(m.gap)) : DEFAULT_GAP,
             image: typeof m.image === "string" ? m.image : null,
             claimedAt: typeof m.claimedAt === "string" ? m.claimedAt : null,
             archived: m.archived === true,

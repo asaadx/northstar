@@ -148,6 +148,12 @@
   color: var(--text-dim);
 }
 
+.northstar__days {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Larger than a node on purpose: this is the destination, not a stop. */
 .northstar__mark {
   width: 6rem;

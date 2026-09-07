@@ -23,6 +23,7 @@ import {
   checkIn as checkInTo,
   checkedInToday,
   claimReward,
+  DEFAULT_GAP,
   hydrate,
   moveMilestone as moveMilestoneIn,
   nextMilestone,
@@ -31,6 +32,7 @@ import {
   removeMilestone as removeMilestoneFrom,
   resetStreak,
   setNorthstar as setNorthstarOn,
+  totalDays,
   unlockedCount,
   updateMilestone as updateMilestoneIn,
   type ActiveMilestone,
@@ -181,11 +183,13 @@ export type Store = {
   northstar: string;
   /** True once every stretch has been walked. */
   northstarReached: boolean;
+  /** The northstar's distance in days: every gap added up. */
+  totalDays: number;
 
   checkIn: () => void;
   claim: (milestoneId: string) => void;
   reset: () => void;
-  addMilestone: (reward: string, note?: string) => void;
+  addMilestone: (reward: string, note?: string, gap?: number) => void;
   updateMilestone: (id: string, patch: MilestonePatch) => void;
   removeMilestone: (id: string) => void;
   moveMilestone: (id: string, direction: -1 | 1) => void;
@@ -224,8 +228,8 @@ export function useNorthstar(): Store {
     apply((current) => resetStreak(current, now));
   }, []);
 
-  const addMilestone = useCallback((reward: string, note = "") => {
-    apply((current) => addMilestoneTo(current, reward, note));
+  const addMilestone = useCallback((reward: string, note = "", gap = DEFAULT_GAP) => {
+    apply((current) => addMilestoneTo(current, reward, note, gap));
   }, []);
 
   const updateMilestone = useCallback((id: string, patch: MilestonePatch) => {
@@ -260,6 +264,7 @@ export function useNorthstar(): Store {
       event,
       northstar: state.northstar,
       northstarReached: northstarReached(state),
+      totalDays: totalDays(state),
       checkIn,
       claim,
       reset,

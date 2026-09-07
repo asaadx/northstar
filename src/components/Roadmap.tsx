@@ -41,7 +41,7 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
 }
 
 export default function Roadmap() {
-  const { days, progress, milestones, next, event, claim, northstar, northstarReached } = useNorthstar();
+  const { days, progress, milestones, next, event, claim, northstar, northstarReached, totalDays } = useNorthstar();
   const reducedMotion = useReducedMotion();
   const northstarRef = useRef<HTMLDivElement | null>(null);
   const scrolledOnMount = useRef(false);
@@ -114,6 +114,9 @@ export default function Roadmap() {
               <div className="northstar__label">
                 <span className="northstar__title">Northstar</span>
                 {northstar !== "" && <span className="northstar__desc">{northstar}</span>}
+                <span className="northstar__days">
+                  {totalDays} {totalDays === 1 ? "day" : "days"}
+                </span>
               </div>
               <div className={northstarReached ? "northstar__mark northstar__mark--reached" : "northstar__mark"}>
                 <StarGlyph />
