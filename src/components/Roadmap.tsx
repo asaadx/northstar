@@ -2,7 +2,9 @@
  * The centerpiece: a bottom-anchored vertical column of milestones, nearest
  * reward at the bottom, growing upward as more are added. Reflects exactly
  * where the user stands, how close the next reward is, and what has already
- * been earned — all without a single number needing to be looked up.
+ * been earned — all without a single number needing to be looked up. The
+ * road itself ends at a single named goal: the northstar, above the furthest
+ * reward.
  *
  * The pane opens already scrolled to the walked stretch, and as progress
  * accrues and the day marker drifts toward the top edge, the view follows it
@@ -39,9 +41,9 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
 }
 
 export default function Roadmap() {
-  const { days, progress, milestones, next, event, claim } = useNorthstar();
+  const { days, progress, milestones, next, event, claim, northstar, northstarReached } = useNorthstar();
   const reducedMotion = useReducedMotion();
-  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const northstarRef = useRef<HTMLDivElement | null>(null);
   const scrolledOnMount = useRef(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,11 +55,8 @@ export default function Roadmap() {
 
     const y = markerViewportY(scroller, progress.fraction);
     if (y === null) {
-      // Nothing left to walk, so rest on the furthest reward instead.
-      const lastId = milestones[0]?.milestone.id;
-      if (lastId !== undefined) {
-        rowRefs.current.get(lastId)?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
-      }
+      // Nothing left to walk, so rest on the goal it all led to.
+      northstarRef.current?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       return;
     }
 
@@ -110,6 +109,26 @@ export default function Roadmap() {
     <div className="roadmap" ref={scrollerRef}>
       <LayoutGroup>
         <div className="track">
+          <div>
+            <div className="northstar" ref={northstarRef}>
+              <div className="northstar__label">
+                <span className="northstar__title">Northstar</span>
+                {northstar !== "" && <span className="northstar__desc">{northstar}</span>}
+              </div>
+              <div className={northstarReached ? "northstar__mark northstar__mark--reached" : "northstar__mark"}>
+                <StarGlyph />
+              </div>
+            </div>
+            <Connector
+              traveled={northstarReached}
+              active={false}
+              fraction={0}
+              days={0}
+              markerSide={labelSideFor(milestones.length)}
+              bendSide={oppositeSide(labelSideFor(milestones.length))}
+              origin={false}
+            />
+          </div>
           {reversed.map((entry) => {
             const traveled = entry.requirement <= days;
             const active = next !== null && entry.milestone.id === next.milestone.id;
@@ -125,10 +144,6 @@ export default function Roadmap() {
                 <motion.div
                   layout
                   className="row"
-                  ref={(node) => {
-                    if (node) rowRefs.current.set(entry.milestone.id, node);
-                    else rowRefs.current.delete(entry.milestone.id);
-                  }}
                 >
                   <div className="row__slot row__slot--left">
                     {side === "left" && (
@@ -239,5 +254,19 @@ function MilestoneLabel({
       )}
       {status === "claimed" && <span className="label__status" style={{ color: "var(--accent)" }}>Claimed</span>}
     </div>
+  );
+}
+
+/**
+ * The app icon's shape: an astroid, |x|^(2/3) + |y|^(2/3) <= 1, whose four
+ * concave cusps read as a north star. One cubic per quarter, with controls at
+ * 0.6096R so each quarter passes through the astroid's true midpoint. Filled
+ * like the icon; the reached state is carried by colour alone.
+ */
+function StarGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2.5C12 6.21 17.79 12 21.5 12C17.79 12 12 17.79 12 21.5C12 17.79 6.21 12 2.5 12C6.21 12 12 6.21 12 2.5Z" />
+    </svg>
   );
 }

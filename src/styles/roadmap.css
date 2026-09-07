@@ -114,6 +114,58 @@
   line-height: 0;
 }
 
+/* -------------------------------------------------------------- northstar */
+
+/* The terminus. Nothing attaches above it, so unlike a row it may stand
+   taller than a node: only its bottom edge has to meet the road, which is why
+   the mark is its last child. */
+.northstar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding-inline: var(--gutter);
+}
+
+.northstar__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+  max-width: 16rem;
+}
+
+.northstar__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.northstar__desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+/* Larger than a node on purpose: this is the destination, not a stop. */
+.northstar__mark {
+  width: 6rem;
+  height: 6rem;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+}
+
+.northstar__mark--reached {
+  color: var(--text);
+}
+
+.northstar__mark svg {
+  width: 5rem;
+  height: 5rem;
+}
+
 /* -------------------------------------------------------------- label */
 
 .label {

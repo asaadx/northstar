@@ -104,6 +104,12 @@
   align-items: center;
 }
 
+/* Keeps the field from crowding the row's label text. */
+.set-row__input {
+  max-width: 11rem;
+  text-align: right;
+}
+
 .confirm {
   display: flex;
   align-items: center;

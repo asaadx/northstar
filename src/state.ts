@@ -18,7 +18,7 @@
  */
 
 export const DAYS_PER_MILESTONE = 7;
-export const STATE_VERSION = 5;
+export const STATE_VERSION = 6;
 
 export type Milestone = {
   id: string;
@@ -52,6 +52,8 @@ export type State = {
   lastCheckIn: string | null;
   /** Bumped by every reset. Stamped onto milestones archived by that reset. */
   run: number;
+  /** The goal the whole road leads to. Empty until named. */
+  northstar: string;
 };
 
 export type MilestoneStatus = "locked" | "available" | "claimed";
@@ -117,6 +119,7 @@ export function createInitialState(): State {
     days: 0,
     lastCheckIn: null,
     run: 1,
+    northstar: "",
   };
 }
 
@@ -141,6 +144,15 @@ export function unlockedCount(state: State): number {
 /** The nearest milestone whose requirement is still ahead, or null when the roadmap is exhausted. */
 export function nextMilestone(state: State): ActiveMilestone | null {
   return activeMilestones(state).find((entry) => entry.requirement > state.days) ?? null;
+}
+
+/**
+ * True once every stretch has been walked. Claiming rewards is a separate
+ * act and deliberately does not gate this.
+ */
+export function northstarReached(state: State): boolean {
+  const active = state.milestones.filter((m) => !m.archived).length;
+  return active > 0 && state.days >= active * DAYS_PER_MILESTONE;
 }
 
 /** Progress toward the next reward. */
@@ -291,6 +303,12 @@ export function removeMilestone(state: State, id: string): State {
   return { ...state, milestones: state.milestones.filter((m) => m.id !== id) };
 }
 
+/** Name the goal. Returns the input unchanged when the text is the same. */
+export function setNorthstar(state: State, text: string): State {
+  if (state.northstar === text) return state;
+  return { ...state, northstar: text };
+}
+
 /**
  * Move an active milestone one slot toward (`-1`) or away from (`+1`) the
  * viewer. Swaps against the neighbouring *active* milestone so interleaved
@@ -325,6 +343,7 @@ export function moveMilestone(state: State, id: string, direction: -1 | 1): Stat
  * had no reward pictures; hydration defaults `image` to null for those records.
  * Versions up to 4 did not record a run's day count, so milestones archived by
  * them hydrate with `archivedDays: null` and their counts are unknowable.
+ * Versions up to 5 had no northstar, so they hydrate with an empty one.
  */
 type PersistedShape = Partial<State> & {
   days?: unknown;
@@ -378,5 +397,6 @@ export function hydrate(raw: unknown, now: Date): State {
     days,
     lastCheckIn: typeof input.lastCheckIn === "string" ? input.lastCheckIn : null,
     run: typeof input.run === "number" && input.run >= 1 ? Math.floor(input.run) : 1,
+    northstar: typeof input.northstar === "string" ? input.northstar : "",
   };
 }

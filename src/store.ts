@@ -26,9 +26,11 @@ import {
   hydrate,
   moveMilestone as moveMilestoneIn,
   nextMilestone,
+  northstarReached,
   progress as progressOf,
   removeMilestone as removeMilestoneFrom,
   resetStreak,
+  setNorthstar as setNorthstarOn,
   unlockedCount,
   updateMilestone as updateMilestoneIn,
   type ActiveMilestone,
@@ -175,6 +177,10 @@ export type Store = {
   unlocked: number;
   /** What just happened, for animation sequencing. Clears itself. */
   event: StoreEvent | null;
+  /** The goal at the end of the road; empty until named. */
+  northstar: string;
+  /** True once every stretch has been walked. */
+  northstarReached: boolean;
 
   checkIn: () => void;
   claim: (milestoneId: string) => void;
@@ -183,6 +189,7 @@ export type Store = {
   updateMilestone: (id: string, patch: MilestonePatch) => void;
   removeMilestone: (id: string) => void;
   moveMilestone: (id: string, direction: -1 | 1) => void;
+  setNorthstar: (text: string) => void;
 };
 
 export function useNorthstar(): Store {
@@ -233,6 +240,10 @@ export function useNorthstar(): Store {
     apply((current) => moveMilestoneIn(current, id, direction));
   }, []);
 
+  const setNorthstar = useCallback((text: string) => {
+    apply((current) => setNorthstarOn(current, text));
+  }, []);
+
   return useMemo<Store>(() => {
     // `tick` participates so the day-rollover republish re-evaluates `checkedIn`.
     void tick;
@@ -247,6 +258,8 @@ export function useNorthstar(): Store {
       canCheckIn: !checkedIn || ALLOW_REPEAT_CHECK_IN,
       unlocked: unlockedCount(state),
       event,
+      northstar: state.northstar,
+      northstarReached: northstarReached(state),
       checkIn,
       claim,
       reset,
@@ -254,6 +267,7 @@ export function useNorthstar(): Store {
       updateMilestone,
       removeMilestone,
       moveMilestone,
+      setNorthstar,
     };
   }, [
     state,
@@ -266,5 +280,6 @@ export function useNorthstar(): Store {
     updateMilestone,
     removeMilestone,
     moveMilestone,
+    setNorthstar,
   ]);
 }
