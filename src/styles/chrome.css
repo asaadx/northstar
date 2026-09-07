@@ -1,0 +1,76 @@
+/* Tab bar and check-in control. Both recede so the roadmap stays the focus. */
+
+.tabbar {
+  flex: none;
+  display: flex;
+  background: var(--bg);
+  border-top: 1px solid var(--edge);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabbar__tab {
+  flex: 1;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem 0.45rem;
+  color: var(--text-faint);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tabbar__tab--active {
+  color: var(--text-dim);
+}
+
+.tabbar__icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
+}
+
+.tabbar__label {
+  font-size: 0.62rem;
+  letter-spacing: 0.01em;
+}
+
+.checkin {
+  flex: none;
+  padding: 0.75rem var(--gutter) 0.9rem;
+  background: var(--bg);
+}
+
+.checkin__btn {
+  width: 100%;
+  border: 1px solid var(--edge-strong);
+  border-radius: var(--r-full);
+  background: var(--surface-raised);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.98rem;
+  padding: 0.95rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.checkin__btn--done {
+  background: transparent;
+  border-color: var(--edge);
+  color: var(--text-faint);
+  cursor: default;
+}
+
+.checkin__check svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  display: block;
+}

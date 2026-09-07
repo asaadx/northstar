@@ -1,0 +1,269 @@
+/* Roadmap: vertical column of milestones, nearest at the bottom. */
+
+.roadmap {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.track {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: var(--edge-cushion);
+  padding-bottom: var(--edge-cushion);
+}
+
+.track > *:first-child {
+  margin-top: auto;
+}
+
+.roadmap__empty {
+  margin: auto;
+  padding: 0 2rem;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 0.95rem;
+}
+
+/* -------------------------------------------------------------- row */
+
+/* Pinned to the node so the stretch below starts exactly at the node's edge.
+   Without this a wrapped reward name grows the row and detaches the road. */
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  column-gap: var(--gutter);
+  padding-inline: var(--gutter);
+  height: var(--node-size);
+}
+
+.row__slot {
+  min-width: 0;
+  height: 0;
+  display: flex;
+  align-items: center;
+}
+
+.row__slot--left {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.row__slot--right {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* -------------------------------------------------------------- node */
+
+.node {
+  position: relative;
+  width: var(--node-size);
+  height: var(--node-size);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.node--locked {
+  background: var(--surface-raised);
+  border: 1px solid var(--edge);
+  color: var(--text-faint);
+}
+
+.node--available {
+  background: var(--surface);
+  border: 2px solid var(--amber);
+  color: var(--amber);
+  box-shadow: 0 0 0 6px rgba(245, 196, 81, 0.09);
+}
+
+.node--claimed {
+  background: var(--surface);
+  border: 1px solid var(--edge);
+  color: var(--accent);
+}
+
+.node__image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Held back until the milestone is reached, then shown as it really is. */
+.node--locked .node__image {
+  filter: grayscale(1) brightness(0.45);
+}
+
+/* Absolute so an outgoing and an incoming glyph overlap instead of becoming
+   two implicit grid rows, which would push the entering glyph below center. */
+.node__glyph {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  line-height: 0;
+}
+
+/* -------------------------------------------------------------- label */
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 12rem;
+}
+
+.row__slot--left .label {
+  text-align: right;
+}
+
+.row__slot--right .label {
+  text-align: left;
+}
+
+.label__req {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-faint);
+}
+
+.label__reward {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.label__reward--available {
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+.label__status {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.claim {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--r-full);
+  border: 1px solid var(--amber);
+  background: transparent;
+  color: var(--amber);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.row__slot--left .claim {
+  align-self: flex-end;
+}
+
+/* -------------------------------------------------------------- connector */
+
+.connector {
+  position: relative;
+  width: var(--connector-w);
+  height: var(--connector-h);
+  margin-inline: auto;
+  overflow: visible;
+}
+
+/* `preserveAspectRatio="none"` keeps the path's endpoints on the box's top and
+   bottom edges whatever the box's ratio, so the road always meets its nodes.
+   Non-scaling strokes keep the widths exact under that stretch. */
+.connector__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.connector__base {
+  fill: none;
+  stroke: var(--edge);
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.connector--traveled .connector__base {
+  stroke: var(--accent);
+}
+
+/* Quiet by default; it takes the reached colour once the first stretch is
+   behind you, so the beginning of the road matches the rest of it. */
+.connector__origin {
+  fill: none;
+  stroke: var(--text-faint);
+  stroke-width: 7;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.connector--traveled .connector__origin {
+  stroke: var(--accent);
+}
+
+/* Custom properties cannot be used in SVG presentation attributes, so the
+   ramp's stops take their colours from here. */
+.connector__ramp-start {
+  stop-color: var(--accent);
+}
+
+.connector__ramp-end {
+  stop-color: var(--amber);
+}
+
+.connector__progress {
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* A zero-length dash with a round cap: a dot sitting exactly on the curve. */
+.connector__dot {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 8;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.connector__marker {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.connector__marker--right {
+  left: 50%;
+  transform: translate(0.65rem, 50%);
+}
+
+.connector__marker--left {
+  right: 50%;
+  transform: translate(-0.65rem, 50%);
+}
+
+.connector__marker span:last-child {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
