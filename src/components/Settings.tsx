@@ -3,11 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useNorthstar } from "../store";
 import { DUR } from "../motion";
 import MilestoneEditor from "./MilestoneEditor";
-import { STRETCH_MODES, selectStretchMode, stretchMode } from "../stretch";
 
 export default function Settings() {
   const store = useNorthstar();
-  const { days, progress, northstar, setNorthstar, reset } = store;
+  const { days, progress, reset } = store;
   const [editorOpen, setEditorOpen] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
 
@@ -22,27 +21,6 @@ export default function Settings() {
       <p className="settings__meta">
         {progress.remaining > 0 ? `${progress.remaining} to the next reward` : "Every reward unlocked."}
       </p>
-
-      <div className="set-row">
-        <div className="set-row__text">
-          <div className="set-row__label">Northstar</div>
-          <div className="set-row__note">The goal at the end of the road.</div>
-        </div>
-        <div className="set-row__control">
-          <input
-            className="sheet__input set-row__input"
-            defaultValue={northstar}
-            placeholder="Name it"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") e.currentTarget.blur();
-            }}
-            onBlur={(e) => {
-              const value = e.currentTarget.value.trim();
-              if (value !== northstar) setNorthstar(value);
-            }}
-          />
-        </div>
-      </div>
 
       <div className="set-row">
         <div className="set-row__text">
@@ -103,29 +81,6 @@ export default function Settings() {
           </AnimatePresence>
         </div>
       </div>
-
-      {import.meta.env.DEV && (
-        <div className="set-row">
-          <div className="set-row__text">
-            <div className="set-row__label">Stretch length</div>
-            <div className="set-row__note">
-              Development only. How a stretch&rsquo;s height follows its gap.
-            </div>
-          </div>
-          <div className="set-row__control set-row__modes">
-            {STRETCH_MODES.map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                className={mode === stretchMode() ? "link-btn link-btn--on" : "link-btn"}
-                onClick={() => selectStretchMode(mode)}
-              >
-                {mode}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       <MilestoneEditor open={editorOpen} onClose={() => setEditorOpen(false)} />
     </div>

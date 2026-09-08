@@ -18,7 +18,7 @@
  */
 
 export const DEFAULT_GAP = 7;
-export const STATE_VERSION = 7;
+export const STATE_VERSION = 8;
 
 export type Milestone = {
   id: string;
@@ -54,8 +54,6 @@ export type State = {
   lastCheckIn: string | null;
   /** Bumped by every reset. Stamped onto milestones archived by that reset. */
   run: number;
-  /** The goal the whole road leads to. Empty until named. */
-  northstar: string;
 };
 
 export type MilestoneStatus = "locked" | "available" | "claimed";
@@ -133,7 +131,6 @@ export function createInitialState(): State {
     days: 0,
     lastCheckIn: null,
     run: 1,
-    northstar: "One full year",
   };
 }
 
@@ -163,15 +160,6 @@ export function unlockedCount(state: State): number {
 /** The nearest milestone whose requirement is still ahead, or null when the roadmap is exhausted. */
 export function nextMilestone(state: State): ActiveMilestone | null {
   return activeMilestones(state).find((entry) => entry.requirement > state.days) ?? null;
-}
-
-/**
- * True once every stretch has been walked. Claiming rewards is a separate
- * act and deliberately does not gate this.
- */
-export function northstarReached(state: State): boolean {
-  const total = totalDays(state);
-  return total > 0 && state.days >= total;
 }
 
 /** Progress toward the next reward. */
@@ -328,12 +316,6 @@ export function removeMilestone(state: State, id: string): State {
   return { ...state, milestones: state.milestones.filter((m) => m.id !== id) };
 }
 
-/** Name the goal. Returns the input unchanged when the text is the same. */
-export function setNorthstar(state: State, text: string): State {
-  if (state.northstar === text) return state;
-  return { ...state, northstar: text };
-}
-
 /**
  * Move an active milestone one slot toward (`-1`) or away from (`+1`) the
  * viewer. Swaps against the neighbouring *active* milestone so interleaved
@@ -371,7 +353,9 @@ export function moveMilestone(state: State, id: string, direction: -1 | 1): Stat
  * Versions up to 5 had no northstar, so they hydrate with an empty one.
  * Versions up to 6 had a fixed seven-day cadence with no stored gap, so their
  * milestones hydrate at a gap of `DEFAULT_GAP` (7), which keeps every
- * existing requirement exactly what it was.
+ * existing requirement exactly what it was. Version 7 stored a separate
+ * northstar name for the road's goal; the furthest reward now names itself,
+ * so that field is simply ignored on load.
  */
 type PersistedShape = Partial<State> & {
   days?: unknown;
@@ -426,6 +410,5 @@ export function hydrate(raw: unknown, now: Date): State {
     days,
     lastCheckIn: typeof input.lastCheckIn === "string" ? input.lastCheckIn : null,
     run: typeof input.run === "number" && input.run >= 1 ? Math.floor(input.run) : 1,
-    northstar: typeof input.northstar === "string" ? input.northstar : "",
   };
 }

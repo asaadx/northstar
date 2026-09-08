@@ -19,7 +19,6 @@
 import { useEffect, useId, useState } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion } from "framer-motion";
 import { SPRING_SOFT } from "../motion";
-import { stretchHeight, stretchMode } from "../stretch";
 
 /** viewBox units, proportional to the `--connector-w` by `--connector-h` box. */
 const VB_W = 100;
@@ -39,6 +38,22 @@ const BEND = 42;
  */
 const MARKER_FLOOR = 0.16;
 const MARKER_CEILING = 0.86;
+
+/** Shortest a stretch may draw and still keep the day marker clear of both nodes. */
+const MIN_STRETCH_REM = 6;
+
+/** Root coefficient, chosen so a 3-day gap lands exactly on the floor. */
+const STRETCH_REM = 3.46;
+
+/**
+ * A stretch is drawn as the square root of its gap, so a longer wait is
+ * always a longer stretch without a year costing 13,000px of scrolling.
+ * Scaling linearly would even out pixels-per-day but tripled the height;
+ * clamping shortened it but drew 30, 60 and 65 day gaps identically.
+ */
+function stretchHeight(gap: number): string {
+  return `${Math.max(MIN_STRETCH_REM, STRETCH_REM * Math.sqrt(Math.max(1, gap)))}rem`;
+}
 
 /**
  * Where the day marker sits along the stretch, as a fraction of the curve.
@@ -68,8 +83,8 @@ type ConnectorProps = {
   bendSide: Side;
   /** This is the first stretch, so its lower end is where the road begins. */
   origin: boolean;
-  /** Days this stretch spans; null for the final stretch up to the northstar. */
-  gap: number | null;
+  /** Days this stretch spans. Its drawn height follows the square root of this. */
+  gap: number;
 };
 
 /** Bottom-centre to top-centre, bowed to one side. Endpoints meet the nodes. */
@@ -108,7 +123,7 @@ export default function Connector({
    */
   const dotOffset = 2 - marked;
   const d = curve(bendSide);
-  const height = stretchHeight(gap, stretchMode());
+  const height = stretchHeight(gap);
 
   const dayValue = useMotionValue(days);
   const [displayDay, setDisplayDay] = useState(days);

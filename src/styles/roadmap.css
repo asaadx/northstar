@@ -154,6 +154,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+.northstar__status {
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+/* The stack is centred, so the Claim affordance centres with it rather than
+   hugging an edge the way a side label's does. */
+.northstar__label .claim {
+  align-self: center;
+  margin-top: 0.35rem;
+}
+
 /* Larger than a node on purpose: this is the destination, not a stop. */
 .northstar__mark {
   width: 6rem;

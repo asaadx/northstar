@@ -27,11 +27,9 @@ import {
   hydrate,
   moveMilestone as moveMilestoneIn,
   nextMilestone,
-  northstarReached,
   progress as progressOf,
   removeMilestone as removeMilestoneFrom,
   resetStreak,
-  setNorthstar as setNorthstarOn,
   totalDays,
   unlockedCount,
   updateMilestone as updateMilestoneIn,
@@ -179,10 +177,6 @@ export type Store = {
   unlocked: number;
   /** What just happened, for animation sequencing. Clears itself. */
   event: StoreEvent | null;
-  /** The goal at the end of the road; empty until named. */
-  northstar: string;
-  /** True once every stretch has been walked. */
-  northstarReached: boolean;
   /** The northstar's distance in days: every gap added up. */
   totalDays: number;
 
@@ -193,7 +187,6 @@ export type Store = {
   updateMilestone: (id: string, patch: MilestonePatch) => void;
   removeMilestone: (id: string) => void;
   moveMilestone: (id: string, direction: -1 | 1) => void;
-  setNorthstar: (text: string) => void;
 };
 
 export function useNorthstar(): Store {
@@ -244,10 +237,6 @@ export function useNorthstar(): Store {
     apply((current) => moveMilestoneIn(current, id, direction));
   }, []);
 
-  const setNorthstar = useCallback((text: string) => {
-    apply((current) => setNorthstarOn(current, text));
-  }, []);
-
   return useMemo<Store>(() => {
     // `tick` participates so the day-rollover republish re-evaluates `checkedIn`.
     void tick;
@@ -262,8 +251,6 @@ export function useNorthstar(): Store {
       canCheckIn: !checkedIn || ALLOW_REPEAT_CHECK_IN,
       unlocked: unlockedCount(state),
       event,
-      northstar: state.northstar,
-      northstarReached: northstarReached(state),
       totalDays: totalDays(state),
       checkIn,
       claim,
@@ -272,7 +259,6 @@ export function useNorthstar(): Store {
       updateMilestone,
       removeMilestone,
       moveMilestone,
-      setNorthstar,
     };
   }, [
     state,
@@ -285,6 +271,5 @@ export function useNorthstar(): Store {
     updateMilestone,
     removeMilestone,
     moveMilestone,
-    setNorthstar,
   ]);
 }
