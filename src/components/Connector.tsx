@@ -31,39 +31,42 @@ const VB_H = 140;
  */
 const BEND = 42;
 
-/**
- * The marker's travel is held inside this slice so it never reaches either
- * node's circle, where an opaque claimed node would cover it. The progress
- * stroke itself stays truthful to `fraction`; only the label is held back.
- */
-const MARKER_FLOOR = 0.16;
-const MARKER_CEILING = 0.86;
-
-/** Shortest a stretch may draw and still keep the day marker clear of both nodes. */
-const MIN_STRETCH_REM = 6;
+/** Shortest a stretch may draw, matching today's floor of 6rem. */
+const MIN_STRETCH_PX = 96;
 
 /** Root coefficient, chosen so a 3-day gap lands exactly on the floor. */
-const STRETCH_REM = 3.46;
+const STRETCH_PX = 55.4;
+
+/**
+ * Clearance the day marker keeps from the node below it. A distance, not a
+ * fraction: the dot is 8px wide and the thing it must not disappear behind is
+ * a node circle, neither of which scales with a stretch. Held as a fraction
+ * it froze the dot for four days at each end of a 30-day stretch and left it
+ * trailing the fill's tip.
+ */
+const MARKER_CLEARANCE_PX = 14;
 
 /**
  * A stretch is drawn as the square root of its gap, so a longer wait is
  * always a longer stretch without a year costing 13,000px of scrolling.
- * Scaling linearly would even out pixels-per-day but tripled the height;
- * clamping shortened it but drew 30, 60 and 65 day gaps identically.
  */
-function stretchHeight(gap: number): string {
-  return `${Math.max(MIN_STRETCH_REM, STRETCH_REM * Math.sqrt(Math.max(1, gap)))}rem`;
+function stretchHeight(gap: number): number {
+  return Math.max(MIN_STRETCH_PX, STRETCH_PX * Math.sqrt(Math.max(1, gap)));
 }
 
 /**
- * Where the day marker sits along the stretch, as a fraction of the curve.
+ * Where the day marker sits along the stretch. Only the node BELOW can cover
+ * it — a connector paints after its own row, so the dot draws over the node
+ * above, while the next row paints over the connector's bottom. So the floor
+ * is real and there is no ceiling, which lets the dot sit on the fill's tip.
+ *
  * Exported because the roadmap's scroll logic needs the same answer, and the
- * dot is a zero-length dash whose painted position cannot be measured from
- * the DOM.
+ * dot is a zero-length dash whose painted position cannot be read from the DOM.
  */
-export function markerFraction(fraction: number): number {
+export function markerFraction(fraction: number, heightPx: number): number {
   const clamped = Math.max(0, Math.min(1, fraction));
-  return Math.max(MARKER_FLOOR, Math.min(MARKER_CEILING, clamped));
+  const inset = heightPx > 0 ? Math.min(0.4, MARKER_CLEARANCE_PX / heightPx) : 0;
+  return Math.max(inset, clamped);
 }
 
 type Side = "left" | "right";
@@ -108,7 +111,8 @@ export default function Connector({
   const rampId = useId();
 
   const clamped = Math.max(0, Math.min(1, fraction));
-  const marked = markerFraction(fraction);
+  const heightPx = stretchHeight(gap);
+  const marked = markerFraction(fraction, heightPx);
   const markerPct = `${marked * 100}%`;
   // Nothing banked yet means no distance travelled and no number worth showing.
   const showMarker = days >= 1;
@@ -123,7 +127,6 @@ export default function Connector({
    */
   const dotOffset = 2 - marked;
   const d = curve(bendSide);
-  const height = stretchHeight(gap);
 
   const dayValue = useMotionValue(days);
   const [displayDay, setDisplayDay] = useState(days);
@@ -148,7 +151,7 @@ export default function Connector({
     .join(" ");
 
   return (
-    <div className={className} style={{ height }}>
+    <div className={className} style={{ height: `${heightPx}px` }}>
       <svg
         className="connector__svg"
         viewBox={`0 0 ${VB_W} ${VB_H}`}
