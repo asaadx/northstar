@@ -244,6 +244,9 @@
 
 /* -------------------------------------------------------------- connector */
 
+/* Real dimensions come from the component's `heightPx`/`CONNECTOR_W_PX`,
+   set inline, so the SVG's pixel viewBox matches this box exactly. These
+   declarations are only a fallback before the inline styles apply. */
 .connector {
   position: relative;
   width: var(--connector-w);
@@ -267,7 +270,6 @@
   stroke: var(--edge);
   stroke-width: 2;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .connector--traveled .connector__base {
@@ -281,7 +283,6 @@
   stroke: var(--text-faint);
   stroke-width: 7;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .connector--traveled .connector__origin {
@@ -302,7 +303,6 @@
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 /* A zero-length dash with a round cap: a dot sitting exactly on the curve. */
@@ -311,7 +311,6 @@
   stroke: var(--amber);
   stroke-width: 8;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .connector__marker {

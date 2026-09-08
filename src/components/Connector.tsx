@@ -20,53 +20,69 @@ import { useEffect, useId, useState } from "react";
 import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion } from "framer-motion";
 import { SPRING_SOFT } from "../motion";
 
-/** viewBox units, proportional to the `--connector-w` by `--connector-h` box. */
-const VB_W = 100;
-const VB_H = 140;
-
 /**
- * Sideways push on both control points. Peak deviation is `0.75 * BEND`,
- * which at 42 is 31.5 units: well inside the half-width, and it peaks
- * mid-stretch where neither node nor label reaches.
+ * The SVG's user units ARE css pixels. A fixed viewBox with
+ * `preserveAspectRatio="none"` scaled user space away from screen space, and
+ * because `vector-effect: non-scaling-stroke` computes dashes in SCREEN space
+ * while `pathLength={1}` normalizes them against USER space, every dash
+ * fraction came out multiplied by the ratio between the two. On a 303px
+ * stretch that ratio was 0.51, so a fill at 29/30 rendered at the halfway
+ * point. Matching the two spaces makes the ratio exactly 1 at any height.
  */
-const BEND = 42;
+const CONNECTOR_W_PX = 80;
 
-/**
- * The marker's travel is held inside this slice so it never reaches either
- * node's circle, where an opaque claimed node would cover it. The progress
- * stroke itself stays truthful to `fraction`; only the label is held back.
- */
-const MARKER_FLOOR = 0.16;
-const MARKER_CEILING = 0.86;
-
-/** Shortest a stretch may draw and still keep the day marker clear of both nodes. */
-const MIN_STRETCH_REM = 6;
+/** Shortest a stretch may draw, matching the previous floor of 6rem. */
+const MIN_STRETCH_PX = 96;
 
 /** Root coefficient, chosen so a 3-day gap lands exactly on the floor. */
-const STRETCH_REM = 3.46;
+const STRETCH_PX = 55.4;
 
 /**
- * A stretch is drawn as the square root of its gap, so a longer wait is
- * always a longer stretch without a year costing 13,000px of scrolling.
- * Scaling linearly would even out pixels-per-day but tripled the height;
- * clamping shortened it but drew 30, 60 and 65 day gaps identically.
+ * Sideways push on both control points, as a share of the width. Peak
+ * deviation is three quarters of this, so 0.42 puts the bow 25.2px off centre
+ * in an 80px box: the same amplitude the old 42-of-100 bend produced.
  */
-function stretchHeight(gap: number): string {
-  return `${Math.max(MIN_STRETCH_REM, STRETCH_REM * Math.sqrt(Math.max(1, gap)))}rem`;
-}
+const BEND_RATIO = 0.42;
 
 /**
- * Where the day marker sits along the stretch, as a fraction of the curve.
- * Exported because the roadmap's scroll logic needs the same answer, and the
- * dot is a zero-length dash whose painted position cannot be measured from
- * the DOM.
+ * Clearance the day marker keeps from the node below it. A distance, not a
+ * fraction: the dot is 8px wide and a node circle is a fixed size, so held as
+ * a fraction it froze the dot for four days at each end of a 30-day stretch.
  */
-export function markerFraction(fraction: number): number {
-  const clamped = Math.max(0, Math.min(1, fraction));
-  return Math.max(MARKER_FLOOR, Math.min(MARKER_CEILING, clamped));
-}
+const MARKER_CLEARANCE_PX = 14;
 
 type Side = "left" | "right";
+
+/**
+ * A stretch is drawn as the square root of its gap, so a longer wait is always
+ * a longer stretch without a year costing 13,000px of scrolling.
+ */
+function stretchHeight(gap: number): number {
+  return Math.max(MIN_STRETCH_PX, STRETCH_PX * Math.sqrt(Math.max(1, gap)));
+}
+
+/** Bottom-centre to top-centre in pixels, bowed to one side. */
+function curve(bendSide: Side, heightPx: number): string {
+  const mid = CONNECTOR_W_PX / 2;
+  const bend = BEND_RATIO * CONNECTOR_W_PX;
+  const cx = bendSide === "left" ? mid - bend : mid + bend;
+  return `M ${mid} ${heightPx} C ${cx} ${heightPx * 0.65} ${cx} ${heightPx * 0.35} ${mid} 0`;
+}
+
+/**
+ * Where the day marker sits along the stretch. Only the node BELOW can cover
+ * it — a connector paints after its own row, so the dot draws over the node
+ * above, while the next row paints over the connector's bottom. So the floor
+ * is real and there is no ceiling, which lets the dot sit on the fill's tip.
+ *
+ * Exported because the roadmap's scroll logic needs the same answer, and the
+ * dot is a zero-length dash whose painted position cannot be read from the DOM.
+ */
+export function markerFraction(fraction: number, heightPx: number): number {
+  const clamped = Math.max(0, Math.min(1, fraction));
+  const inset = heightPx > 0 ? Math.min(0.4, MARKER_CLEARANCE_PX / heightPx) : 0;
+  return Math.max(inset, clamped);
+}
 
 type ConnectorProps = {
   /** Both ends of this stretch are already reached. */
@@ -86,14 +102,6 @@ type ConnectorProps = {
   /** Days this stretch spans. Its drawn height follows the square root of this. */
   gap: number;
 };
-
-/** Bottom-centre to top-centre, bowed to one side. Endpoints meet the nodes. */
-function curve(bendSide: Side): string {
-  const mid = VB_W / 2;
-  const cx = bendSide === "left" ? mid - BEND : mid + BEND;
-  return `M ${mid} ${VB_H} C ${cx} ${VB_H * 0.65} ${cx} ${VB_H * 0.35} ${mid} 0`;
-}
-
 export default function Connector({
   traveled,
   active,
@@ -107,8 +115,9 @@ export default function Connector({
   const reducedMotion = useReducedMotion();
   const rampId = useId();
 
+  const heightPx = stretchHeight(gap);
   const clamped = Math.max(0, Math.min(1, fraction));
-  const marked = markerFraction(fraction);
+  const marked = markerFraction(fraction, heightPx);
   const markerPct = `${marked * 100}%`;
   // Nothing banked yet means no distance travelled and no number worth showing.
   const showMarker = days >= 1;
@@ -122,8 +131,7 @@ export default function Connector({
    * at once, which is what the enter and exit values below would hit.
    */
   const dotOffset = 2 - marked;
-  const d = curve(bendSide);
-  const height = stretchHeight(gap);
+  const d = curve(bendSide, heightPx);
 
   const dayValue = useMotionValue(days);
   const [displayDay, setDisplayDay] = useState(days);
@@ -148,17 +156,17 @@ export default function Connector({
     .join(" ");
 
   return (
-    <div className={className} style={{ height }}>
+    <div className={className} style={{ width: `${CONNECTOR_W_PX}px`, height: `${heightPx}px` }}>
       <svg
         className="connector__svg"
-        viewBox={`0 0 ${VB_W} ${VB_H}`}
+        viewBox={`0 0 ${CONNECTOR_W_PX} ${heightPx}`}
         preserveAspectRatio="none"
         aria-hidden="true"
       >
         <defs>
           {/* Pinned to the whole connector in user space, so a short reveal
               shows only the green base and amber arrives near the top. */}
-          <linearGradient id={rampId} gradientUnits="userSpaceOnUse" x1={0} y1={VB_H} x2={0} y2={0}>
+          <linearGradient id={rampId} gradientUnits="userSpaceOnUse" x1={0} y1={heightPx} x2={0} y2={0}>
             <stop className="connector__ramp-start" offset="0%" />
             <stop className="connector__ramp-end" offset="100%" />
           </linearGradient>
