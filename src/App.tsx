@@ -29,9 +29,15 @@ export default function App(): JSX.Element {
           style={{ display: "flex", flexDirection: "column", flex: "1 1 auto", minHeight: 0 }}
         >
           {page}
+          {/* Inside the keyed subtree on purpose. Outside it, React unmounted the
+              button the instant the tab changed, while the outgoing page was still
+              at full opacity: the column lost the button's height, the pane grew
+              into it, and the bottom-anchored roadmap jumped by exactly that much
+              mid-exit. Here it leaves with the page it belongs to, so the shell's
+              geometry cannot move under an animating page. */}
+          {tab === "roadmap" ? <CheckInButton /> : null}
         </motion.div>
       </AnimatePresence>
-      {tab === "roadmap" ? <CheckInButton /> : null}
       <TabBar tab={tab} onChange={setTab} />
     </>
   );

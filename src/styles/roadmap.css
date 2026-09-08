@@ -1,7 +1,11 @@
 /* Roadmap: vertical column of milestones, nearest at the bottom. */
 
+/* A flex child of the page pane, which also holds the check-in button, rather
+   than `height: 100%` of it: percentage height would ignore the button and
+   overflow the pane by its height. */
 .roadmap {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
