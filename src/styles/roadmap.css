@@ -114,6 +114,76 @@
   line-height: 0;
 }
 
+/* -------------------------------------------------------------- northstar */
+
+/* The terminus. Nothing attaches above it, so unlike a row it may stand
+   taller than a node: only its bottom edge has to meet the road, which is why
+   the mark is its last child. */
+.northstar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding-inline: var(--gutter);
+}
+
+.northstar__label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+  max-width: 16rem;
+}
+
+.northstar__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.northstar__desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.northstar__days {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.northstar__status {
+  font-size: 0.78rem;
+  color: var(--accent);
+}
+
+/* The stack is centred, so the Claim affordance centres with it rather than
+   hugging an edge the way a side label's does. */
+.northstar__label .claim {
+  align-self: center;
+  margin-top: 0.35rem;
+}
+
+/* Larger than a node on purpose: this is the destination, not a stop. */
+.northstar__mark {
+  width: 6rem;
+  height: 6rem;
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+}
+
+.northstar__mark--reached {
+  color: var(--text);
+}
+
+.northstar__mark svg {
+  width: 5rem;
+  height: 5rem;
+}
+
 /* -------------------------------------------------------------- label */
 
 .label {
@@ -174,6 +244,9 @@
 
 /* -------------------------------------------------------------- connector */
 
+/* Real dimensions come from the component's `heightPx`/`CONNECTOR_W_PX`,
+   set inline, so the SVG's pixel viewBox matches this box exactly. These
+   declarations are only a fallback before the inline styles apply. */
 .connector {
   position: relative;
   width: var(--connector-w);
@@ -197,7 +270,6 @@
   stroke: var(--edge);
   stroke-width: 2;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .connector--traveled .connector__base {
@@ -211,7 +283,6 @@
   stroke: var(--text-faint);
   stroke-width: 7;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .connector--traveled .connector__origin {
@@ -232,7 +303,6 @@
   fill: none;
   stroke-width: 2;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 /* A zero-length dash with a round cap: a dot sitting exactly on the curve. */
@@ -241,7 +311,6 @@
   stroke: var(--amber);
   stroke-width: 8;
   stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
 }
 
 .connector__marker {

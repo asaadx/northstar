@@ -2,7 +2,9 @@
  * The centerpiece: a bottom-anchored vertical column of milestones, nearest
  * reward at the bottom, growing upward as more are added. Reflects exactly
  * where the user stands, how close the next reward is, and what has already
- * been earned — all without a single number needing to be looked up.
+ * been earned — all without a single number needing to be looked up. The
+ * road itself ends at a single named goal: the northstar, above the furthest
+ * reward.
  *
  * The pane opens already scrolled to the walked stretch, and as progress
  * accrues and the day marker drifts toward the top edge, the view follows it
@@ -15,7 +17,7 @@ import { useNorthstar } from "../store";
 import type { ActiveMilestone } from "../state";
 import Connector, { markerFraction } from "./Connector";
 import MilestoneNode from "./MilestoneNode";
-import { SPRING, UNLOCK } from "../motion";
+import { SPRING, UNLOCK, DUR } from "../motion";
 import "../styles/roadmap.css";
 
 /** Act while the marker is still visible, never after it has gone. */
@@ -35,13 +37,13 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
   const active = scroller.querySelector<HTMLElement>(".connector--active");
   if (active === null) return null;
   const rect = active.getBoundingClientRect();
-  return rect.bottom - markerFraction(fraction) * rect.height;
+  return rect.bottom - markerFraction(fraction, rect.height) * rect.height;
 }
 
 export default function Roadmap() {
   const { days, progress, milestones, next, event, claim } = useNorthstar();
   const reducedMotion = useReducedMotion();
-  const rowRefs = useRef(new Map<string, HTMLDivElement>());
+  const northstarRef = useRef<HTMLDivElement | null>(null);
   const scrolledOnMount = useRef(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,11 +55,8 @@ export default function Roadmap() {
 
     const y = markerViewportY(scroller, progress.fraction);
     if (y === null) {
-      // Nothing left to walk, so rest on the furthest reward instead.
-      const lastId = milestones[0]?.milestone.id;
-      if (lastId !== undefined) {
-        rowRefs.current.get(lastId)?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
-      }
+      // Nothing left to walk, so rest on the goal it all led to.
+      northstarRef.current?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       return;
     }
 
@@ -119,48 +118,83 @@ export default function Roadmap() {
             // The road bows away from the reward text, and the day label rides the inside
             // of that bow, so numerals never sit over the curve.
             const bendSide = oppositeSide(side);
+            // The furthest reward is the northstar. Nothing attaches above it,
+            // so unlike a row it may stand taller than a node.
+            const isNorthstar = entry.index === milestones.length - 1;
 
             return (
               <div key={entry.milestone.id}>
-                <motion.div
-                  layout
-                  className="row"
-                  ref={(node) => {
-                    if (node) rowRefs.current.set(entry.milestone.id, node);
-                    else rowRefs.current.delete(entry.milestone.id);
-                  }}
-                >
-                  <div className="row__slot row__slot--left">
-                    {side === "left" && (
-                      <MilestoneLabel
-                        entry={entry}
-                        progressRemaining={progress.remaining}
-                        isNext={active}
-                        justUnlocked={!!justUnlocked}
-                        reducedMotion={!!reducedMotion}
-                        onClaim={() => claim(entry.milestone.id)}
-                      />
-                    )}
+                {isNorthstar ? (
+                  <div className="northstar" ref={northstarRef}>
+                    <div className="northstar__label">
+                      <span className="northstar__title">Northstar</span>
+                      <span className="northstar__desc">{entry.milestone.reward}</span>
+                      <span className="northstar__days">
+                        {entry.requirement} {entry.requirement === 1 ? "day" : "days"}
+                      </span>
+                      {entry.status === "available" && (
+                        <motion.button
+                          type="button"
+                          className="claim"
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => claim(entry.milestone.id)}
+                        >
+                          Claim
+                        </motion.button>
+                      )}
+                      {entry.status === "claimed" && (
+                        <span className="northstar__status">Claimed</span>
+                      )}
+                    </div>
+                    <motion.div
+                      className={
+                        entry.status === "locked" ? "northstar__mark" : "northstar__mark northstar__mark--reached"
+                      }
+                      animate={
+                        (justUnlocked || justClaimed) && !reducedMotion ? { scale: [1, 1.05, 1] } : { scale: 1 }
+                      }
+                      transition={{ duration: DUR.base, times: [0, 0.4, 1], ease: "easeOut" }}
+                    >
+                      <StarGlyph />
+                    </motion.div>
                   </div>
-                  <MilestoneNode
-                    status={entry.status}
-                    justUnlocked={!!justUnlocked}
-                    justClaimed={!!justClaimed}
-                    image={entry.milestone.image}
-                  />
-                  <div className="row__slot row__slot--right">
-                    {side === "right" && (
-                      <MilestoneLabel
-                        entry={entry}
-                        progressRemaining={progress.remaining}
-                        isNext={active}
-                        justUnlocked={!!justUnlocked}
-                        reducedMotion={!!reducedMotion}
-                        onClaim={() => claim(entry.milestone.id)}
-                      />
-                    )}
-                  </div>
-                </motion.div>
+                ) : (
+                  <motion.div
+                    layout
+                    className="row"
+                  >
+                    <div className="row__slot row__slot--left">
+                      {side === "left" && (
+                        <MilestoneLabel
+                          entry={entry}
+                          progressRemaining={progress.remaining}
+                          isNext={active}
+                          justUnlocked={!!justUnlocked}
+                          reducedMotion={!!reducedMotion}
+                          onClaim={() => claim(entry.milestone.id)}
+                        />
+                      )}
+                    </div>
+                    <MilestoneNode
+                      status={entry.status}
+                      justUnlocked={!!justUnlocked}
+                      justClaimed={!!justClaimed}
+                      image={entry.milestone.image}
+                    />
+                    <div className="row__slot row__slot--right">
+                      {side === "right" && (
+                        <MilestoneLabel
+                          entry={entry}
+                          progressRemaining={progress.remaining}
+                          isNext={active}
+                          justUnlocked={!!justUnlocked}
+                          reducedMotion={!!reducedMotion}
+                          onClaim={() => claim(entry.milestone.id)}
+                        />
+                      )}
+                    </div>
+                  </motion.div>
+                )}
                 <Connector
                   traveled={traveled}
                   active={active}
@@ -169,6 +203,7 @@ export default function Roadmap() {
                   markerSide={side}
                   bendSide={bendSide}
                   origin={entry.index === 0}
+                  gap={entry.milestone.gap}
                 />
               </div>
             );
@@ -239,5 +274,19 @@ function MilestoneLabel({
       )}
       {status === "claimed" && <span className="label__status" style={{ color: "var(--accent)" }}>Claimed</span>}
     </div>
+  );
+}
+
+/**
+ * The app icon's shape: an astroid, |x|^(2/3) + |y|^(2/3) <= 1, whose four
+ * concave cusps read as a north star. One cubic per quarter, with controls at
+ * 0.6096R so each quarter passes through the astroid's true midpoint. Filled
+ * like the icon; the reached state is carried by colour alone.
+ */
+function StarGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2.5C12 6.21 17.79 12 21.5 12C17.79 12 12 17.79 12 21.5C12 17.79 6.21 12 2.5 12C6.21 12 12 6.21 12 2.5Z" />
+    </svg>
   );
 }

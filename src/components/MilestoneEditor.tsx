@@ -15,7 +15,7 @@ function commitOnEnter(e: KeyboardEvent<HTMLInputElement>) {
 
 export default function MilestoneEditor({ open, onClose }: Props) {
   const store = useNorthstar();
-  const { milestones, addMilestone, updateMilestone, removeMilestone, moveMilestone } = store;
+  const { milestones, addMilestone, updateMilestone, removeMilestone, moveMilestone, totalDays } = store;
   const reducedMotion = useReducedMotion();
   const [armedId, setArmedId] = useState<string | null>(null);
 
@@ -115,6 +115,25 @@ export default function MilestoneEditor({ open, onClose }: Props) {
                           if (value !== milestone.note) updateMilestone(milestone.id, { note: value });
                         }}
                       />
+                      <label className="sheet__gap">
+                        <span className="sheet__gap-text">After</span>
+                        <input
+                          className="sheet__input sheet__gap-input"
+                          type="number"
+                          min={1}
+                          inputMode="numeric"
+                          defaultValue={milestone.gap}
+                          onKeyDown={commitOnEnter}
+                          onBlur={(e) => {
+                            const parsed = Number.parseInt(e.currentTarget.value, 10);
+                            const gap = Number.isFinite(parsed) ? Math.max(1, parsed) : milestone.gap;
+                            // Put the clamped value back so the field never shows something invalid.
+                            e.currentTarget.value = String(gap);
+                            if (gap !== milestone.gap) updateMilestone(milestone.id, { gap });
+                          }}
+                        />
+                        <span className="sheet__gap-text">days later</span>
+                      </label>
                     </div>
                     <div className="sheet__controls">
                       {milestone.image !== null && (
@@ -176,6 +195,9 @@ export default function MilestoneEditor({ open, onClose }: Props) {
               })}
             </AnimatePresence>
 
+            <div className="sheet__total">
+              Northstar at {totalDays} {totalDays === 1 ? "day" : "days"}
+            </div>
             <button type="button" className="sheet__add" onClick={() => addMilestone("New reward")}>
               Add reward
             </button>

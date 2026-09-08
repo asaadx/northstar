@@ -296,6 +296,32 @@
   color: var(--danger);
 }
 
+.sheet__gap {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.sheet__gap-text {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.sheet__gap-input {
+  width: 4rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet__total {
+  padding: 0.5rem var(--gutter) 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
 .sheet__add {
   width: 100%;
   margin-top: 1rem;

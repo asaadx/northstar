@@ -23,12 +23,14 @@ import {
   checkIn as checkInTo,
   checkedInToday,
   claimReward,
+  DEFAULT_GAP,
   hydrate,
   moveMilestone as moveMilestoneIn,
   nextMilestone,
   progress as progressOf,
   removeMilestone as removeMilestoneFrom,
   resetStreak,
+  totalDays,
   unlockedCount,
   updateMilestone as updateMilestoneIn,
   type ActiveMilestone,
@@ -175,11 +177,13 @@ export type Store = {
   unlocked: number;
   /** What just happened, for animation sequencing. Clears itself. */
   event: StoreEvent | null;
+  /** The northstar's distance in days: every gap added up. */
+  totalDays: number;
 
   checkIn: () => void;
   claim: (milestoneId: string) => void;
   reset: () => void;
-  addMilestone: (reward: string, note?: string) => void;
+  addMilestone: (reward: string, note?: string, gap?: number) => void;
   updateMilestone: (id: string, patch: MilestonePatch) => void;
   removeMilestone: (id: string) => void;
   moveMilestone: (id: string, direction: -1 | 1) => void;
@@ -217,8 +221,8 @@ export function useNorthstar(): Store {
     apply((current) => resetStreak(current, now));
   }, []);
 
-  const addMilestone = useCallback((reward: string, note = "") => {
-    apply((current) => addMilestoneTo(current, reward, note));
+  const addMilestone = useCallback((reward: string, note = "", gap = DEFAULT_GAP) => {
+    apply((current) => addMilestoneTo(current, reward, note, gap));
   }, []);
 
   const updateMilestone = useCallback((id: string, patch: MilestonePatch) => {
@@ -247,6 +251,7 @@ export function useNorthstar(): Store {
       canCheckIn: !checkedIn || ALLOW_REPEAT_CHECK_IN,
       unlocked: unlockedCount(state),
       event,
+      totalDays: totalDays(state),
       checkIn,
       claim,
       reset,
