@@ -108,26 +108,40 @@ export function dayKey(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * A roadmap to develop against. Gaps sum to 365, dense early where the habit
+ * is youngest then stretching out: day 3, 7, 14, 21, 30, 60, 90, 120, 150,
+ * 180, 240, 300, 365.
+ *
+ * Referenced only from the development branch below, so a production build
+ * drops both this function and its strings: naming rewards is personal, and a
+ * real roadmap starts empty rather than presuming someone else's.
+ */
+function developmentRoadmap(): Milestone[] {
+  return [
+    makeMilestone("Lonzo's Shawarma", "Extra garlic.", 3),
+    makeMilestone("Cinema night", "", 4),
+    makeMilestone("New running shoes", "", 7),
+    makeMilestone("Steak dinner", "", 7),
+    makeMilestone("Concert tickets", "", 9),
+    makeMilestone("120 Hz 1440p Monitor", "", 30),
+    makeMilestone("Mechanical keyboard", "", 30),
+    makeMilestone("Noise-cancelling headphones", "", 30),
+    makeMilestone("Weekend trip", "Somewhere with no wifi.", 30),
+    makeMilestone("New phone", "", 30),
+    makeMilestone("Camera", "", 60),
+    makeMilestone("Road bike", "", 60),
+    makeMilestone("The trip abroad", "", 65),
+  ];
+}
+
 export function createInitialState(): State {
   return {
     version: STATE_VERSION,
-    // Gaps sum to 365. Dense early, where the habit is youngest, then
-    // stretching out: day 3, 7, 14, 21, 30, 60, 90, 120, 150, 180, 240, 300, 365.
-    milestones: [
-      makeMilestone("Lonzo's Shawarma", "Extra garlic.", 3),
-      makeMilestone("Cinema night", "", 4),
-      makeMilestone("New running shoes", "", 7),
-      makeMilestone("Steak dinner", "", 7),
-      makeMilestone("Concert tickets", "", 9),
-      makeMilestone("120 Hz 1440p Monitor", "", 30),
-      makeMilestone("Mechanical keyboard", "", 30),
-      makeMilestone("Noise-cancelling headphones", "", 30),
-      makeMilestone("Weekend trip", "Somewhere with no wifi.", 30),
-      makeMilestone("New phone", "", 30),
-      makeMilestone("Camera", "", 60),
-      makeMilestone("Road bike", "", 60),
-      makeMilestone("The trip abroad", "", 65),
-    ],
+    // `import.meta.env.DEV` is replaced at build time, so the seed and every
+    // reward name it holds are eliminated from a production bundle rather than
+    // merely skipped at runtime.
+    milestones: import.meta.env.DEV ? developmentRoadmap() : [],
     days: 0,
     lastCheckIn: null,
     run: 1,

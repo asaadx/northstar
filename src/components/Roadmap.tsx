@@ -97,7 +97,9 @@ export default function Roadmap() {
     return (
       <div className="roadmap">
         <div className="track">
-          <p className="roadmap__empty">No rewards on the roadmap yet.</p>
+          <p className="roadmap__empty">
+            No rewards yet. Add them under Settings, then the road builds itself.
+          </p>
         </div>
       </div>
     );
