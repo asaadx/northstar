@@ -7,11 +7,17 @@
  *
  * Development uses a separate database, reset once per dev-server run, so
  * testing can never touch real data.
+ *
+ * `DB_VERSION` is bumped only to DISCARD stored records rather than migrate
+ * them. `hydrate` in state.ts handles every shape worth carrying forward, so a
+ * bump here is a deliberate decision to start over: the versionchange
+ * transaction clears the store, `readState` then returns undefined, and the
+ * bootstrap seeds a fresh roadmap at the current schema.
  */
 
 /** Development gets its own database so testing can never touch real data. */
 export const DB_NAME = import.meta.env.DEV ? "northstar-dev" : "northstar";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 export const STORE_NAME = "kv";
 export const STATE_KEY = "state";
 const RUN_KEY = "dev-run";
@@ -23,7 +29,13 @@ function openRaw(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME);
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+        return;
+      }
+      // The store already exists, so this device holds records written under an
+      // earlier DB_VERSION. Discard them; see the note above.
+      request.transaction?.objectStore(STORE_NAME).clear();
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error("indexedDB.open failed"));
