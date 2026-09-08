@@ -37,7 +37,7 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
   const active = scroller.querySelector<HTMLElement>(".connector--active");
   if (active === null) return null;
   const rect = active.getBoundingClientRect();
-  return rect.bottom - markerFraction(fraction, rect.height) * rect.height;
+  return rect.bottom - markerFraction(fraction) * rect.height;
 }
 
 export default function Roadmap() {
