@@ -5,7 +5,7 @@
  * stable root-scope URL, which a bundled module could not guarantee.
  */
 
-const CACHE = "northstar-v4";
+const CACHE = "northstar-v5";
 const APP_SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png"];
 
 /* -------------------------------------------------------------- lifecycle */

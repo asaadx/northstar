@@ -280,15 +280,11 @@ function MilestoneLabel({
 }
 
 /**
- * The app icon's shape: an astroid, |x|^(2/3) + |y|^(2/3) <= 1, whose four
- * concave cusps read as a north star. One cubic per quarter, with controls at
- * 0.6096R so each quarter passes through the astroid's true midpoint. Filled
- * like the icon; the reached state is carried by colour alone.
+ * The app icon's star, worn as a CSS mask rather than drawn: the shape is raster
+ * artwork (`scripts/star-source.png`) and `npm run icons` emits it as the mask
+ * next to the PWA icons. Masking keeps `currentColor` in charge, so the reached
+ * state is still carried by colour alone, exactly as the inline path was.
  */
 function StarGlyph() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2.5C12 6.21 17.79 12 21.5 12C17.79 12 12 17.79 12 21.5C12 17.79 6.21 12 2.5 12C6.21 12 12 6.21 12 2.5Z" />
-    </svg>
-  );
+  return <span className="northstar__glyph" aria-hidden="true" />;
 }

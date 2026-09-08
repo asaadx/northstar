@@ -179,9 +179,16 @@
   color: var(--text);
 }
 
-.northstar__mark svg {
+/* The star is an alpha mask over `currentColor`, so `.northstar__mark`'s colour
+   (and its --reached variant) paints the shape. `contain` keeps the artwork's
+   square aspect; the mask lives in `public/`, so Vite rewrites the leading `/`
+   to the configured `base` at build time. */
+.northstar__glyph {
   width: 5rem;
   height: 5rem;
+  background: currentColor;
+  -webkit-mask: url("/icons/star-mask.png") center / contain no-repeat;
+  mask: url("/icons/star-mask.png") center / contain no-repeat;
 }
 
 /* -------------------------------------------------------------- label */
