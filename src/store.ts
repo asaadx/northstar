@@ -68,7 +68,7 @@ type Snapshot = {
 };
 
 let snapshot: Snapshot = {
-  state: hydrate(undefined, new Date()),
+  state: hydrate(undefined),
   event: null,
   tick: 0,
 };
@@ -143,7 +143,7 @@ function scheduleRollover(): void {
 /** Load persisted state and start the clock. Call once, before rendering. */
 export async function initStore(): Promise<void> {
   const raw = await readState();
-  snapshot = { state: hydrate(raw, new Date()), event: null, tick: 0 };
+  snapshot = { state: hydrate(raw), event: null, tick: 0 };
 
   // Nothing persisted yet: commit the seeded roadmap so milestone ids are
   // stable across reloads instead of being regenerated every launch.

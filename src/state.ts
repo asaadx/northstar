@@ -360,7 +360,10 @@ export function moveMilestone(state: State, id: string, direction: -1 | 1): Stat
 
 /**
  * Shapes this module has persisted historically. Version 1 stored the day
- * count directly, version 2 stored an elapsed-time anchor instead. Version 3
+ * count directly. Version 2 stored an elapsed-time anchor instead, which is
+ * deliberately no longer honored: `days` advances through `checkIn` alone, so
+ * a count reconstructed from wall-clock time is not a count this app is
+ * willing to invent. Version 2 records hydrate at zero. Version 3
  * had no reward pictures; hydration defaults `image` to null for those records.
  * Versions up to 4 did not record a run's day count, so milestones archived by
  * them hydrate with `archivedDays: null` and their counts are unknowable.
@@ -373,12 +376,10 @@ export function moveMilestone(state: State, id: string, direction: -1 | 1): Stat
  */
 type PersistedShape = Partial<State> & {
   days?: unknown;
-  /** Version 2 only: the run's start anchor the day count was derived from. */
-  startedAt?: unknown;
 };
 
 /** Coerce unknown persisted data into a valid State, discarding junk. */
-export function hydrate(raw: unknown, now: Date): State {
+export function hydrate(raw: unknown): State {
   if (typeof raw !== "object" || raw === null) return createInitialState();
   const input = raw as PersistedShape;
 
@@ -404,19 +405,12 @@ export function hydrate(raw: unknown, now: Date): State {
       })
     : [];
 
-  let days: number;
-  if (typeof input.days === "number" && Number.isFinite(input.days)) {
-    days = Math.max(0, Math.floor(input.days));
-  } else if (typeof input.startedAt === "string") {
-    // v2 migration: preserve the existing count by measuring whole local
-    // calendar days from the old anchor to now.
-    const anchor = new Date(input.startedAt);
-    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const anchorMidnight = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate()).getTime();
-    days = Math.max(0, Math.round((nowMidnight - anchorMidnight) / 86_400_000));
-  } else {
-    days = 0;
-  }
+  // Only a stored counter is honored. There is deliberately no anchor
+  // fallback: `days` advances through `checkIn` and nothing else.
+  const days =
+    typeof input.days === "number" && Number.isFinite(input.days)
+      ? Math.max(0, Math.floor(input.days))
+      : 0;
 
   return {
     version: STATE_VERSION,
