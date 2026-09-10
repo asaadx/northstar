@@ -7,7 +7,8 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(HERE, "..", "public", "icons");
+const PUBLIC_DIR = join(HERE, "..", "public");
+const OUT_DIR = join(PUBLIC_DIR, "icons");
 /** The star artwork. Committed so a regeneration needs no network and is reproducible. */
 const SOURCE = join(HERE, "star-source.png");
 
@@ -255,6 +256,53 @@ function paintMask(size) {
   return encodePng(size, size, rgba);
 }
 
+/**
+ * Social preview card: the same star on the same plate, at the 1.91:1 ratio
+ * link previews crop to. Deliberately wordless. Every platform renders
+ * `og:title` and `og:description` as text beside the image, so baking copy in
+ * would duplicate it at a size nobody controls, and this codec has no font
+ * rasterizer to do it well anyway.
+ */
+function paintOg(width, height) {
+  const rgba = Buffer.alloc(width * height * 4);
+  const cx = (width - 1) / 2;
+  const cy = (height - 1) / 2;
+  // Sized off the short edge so the card keeps a wide margin at any crop.
+  const radius = (height / 2) * 0.62;
+  const SS = supersampling(radius);
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let cov = 0;
+      let glow = 0;
+
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          const nx = (x + (sx + 0.5) / SS - 0.5 - cx) / radius;
+          const ny = (y + (sy + 0.5) / SS - 0.5 - cy) / radius;
+
+          cov += sampleArt(nx, ny);
+          // Wider than the icon's bloom: a card has room for it to fall off.
+          glow += Math.max(0, 1 - Math.hypot(nx, ny) / 1.6) ** 3;
+        }
+      }
+
+      const samples = SS * SS;
+      cov /= samples;
+      glow = Math.min(1, (glow / samples) * 0.85);
+
+      const i = (y * width + x) * 4;
+      for (let ch = 0; ch < 3; ch++) {
+        const base = mix(BG[ch], GLOW[ch], glow * 0.55);
+        rgba[i + ch] = Math.round(mix(base, STAR[ch], cov));
+      }
+      rgba[i + 3] = 0xff;
+    }
+  }
+
+  return encodePng(width, height, rgba);
+}
+
 /* -------------------------------------------------------------------- emit */
 
 mkdirSync(OUT_DIR, { recursive: true });
@@ -279,3 +327,9 @@ for (const { file, size, inset } of targets) {
 const mask = paintMask(256);
 writeFileSync(join(OUT_DIR, "star-mask.png"), mask);
 console.log(`${"star-mask.png".padEnd(26)} 256x256  ${mask.length} bytes`);
+
+// 1200x630 is what every link scraper crops toward. Served from the root, so
+// `og:image` stays a stable absolute URL across deploys.
+const og = paintOg(1200, 630);
+writeFileSync(join(PUBLIC_DIR, "og.png"), og);
+console.log(`${"og.png".padEnd(26)} 1200x630  ${og.length} bytes`);
