@@ -1,7 +1,7 @@
 {
   "name": "Northstar",
   "short_name": "Northstar",
-  "description": "One roadmap. Seven days a milestone.",
+  "description": "Build a daily streak and unlock rewards along the way. Built for people that struggle with consistency.",
   "start_url": ".",
   "scope": "./",
   "display": "standalone",

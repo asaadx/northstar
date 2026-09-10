@@ -29,36 +29,6 @@ count by measuring elapsed time from it. That is gone deliberately, parameter
 and field and all, because a count assembled from wall-clock time is not a count
 anyone earned.
 
-## How a day is decided
-
-The boundary is the **local calendar date**, not a rolling 24-hour window and
-not a fixed timezone:
-
-```ts
-export function checkedInToday(state: State, now: Date): boolean {
-  return typeof state.lastCheckIn === "string" && dayKey(new Date(state.lastCheckIn)) === dayKey(now);
-}
-```
-
-`dayKey` formats a `Date` as `YYYY-MM-DD` using the local accessors, so two
-check-ins are "the same day" exactly when they share a local calendar date.
-Consequences worth knowing:
-
-- Press at 11:59 PM and again at 12:01 AM and both count. Two minutes apart,
-  two different days.
-- Press at 12:01 AM and the button stays spent until the next midnight, even
-  though nearly 24 hours remain in the day.
-- Daylight-saving transitions are a non-event, because nothing compares
-  durations. A 23-hour day is still one calendar date.
-- The button re-arms at local midnight without a reload: a timer fires at
-  midnight plus two seconds, and returning to a backgrounded tab re-checks.
-  Both only trigger a repaint; neither can advance the count.
-
-Because `lastCheckIn` is stored as an absolute instant and re-read against
-whatever timezone the device currently reports, crossing many timezones can move
-the boundary under you. That is a known consequence of tracking progress
-locally, not an oversight.
-
 ## Milestones
 
 A milestone is a reward you name, optionally with a note and a picture. Each one
