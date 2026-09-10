@@ -22,7 +22,7 @@ export const STATE_VERSION = 8;
 
 export type Milestone = {
   id: string;
-  /** The reward itself, e.g. "Lonzo's Shawarma". Shown as the node headline. */
+  /** The reward itself, e.g. "New shoes". Shown as the node headline. */
   reward: string;
   /** Optional detail line, e.g. a budget or a condition. */
   note: string;
@@ -119,19 +119,19 @@ export function dayKey(date: Date): string {
  */
 function developmentRoadmap(): Milestone[] {
   return [
-    makeMilestone("Lonzo's Shawarma", "Extra garlic.", 3),
-    makeMilestone("Cinema night", "", 4),
-    makeMilestone("New running shoes", "", 7),
-    makeMilestone("Steak dinner", "", 7),
+    makeMilestone("Small treat", "A little something.", 3),
+    makeMilestone("Movie night", "", 4),
+    makeMilestone("New shoes", "", 7),
+    makeMilestone("Dinner out", "", 7),
     makeMilestone("Concert tickets", "", 9),
-    makeMilestone("120 Hz 1440p Monitor", "", 30),
+    makeMilestone("Monitor upgrade", "", 30),
     makeMilestone("Mechanical keyboard", "", 30),
     makeMilestone("Noise-cancelling headphones", "", 30),
-    makeMilestone("Weekend trip", "Somewhere with no wifi.", 30),
+    makeMilestone("Weekend away", "Somewhere quiet.", 30),
     makeMilestone("New phone", "", 30),
     makeMilestone("Camera", "", 60),
-    makeMilestone("Road bike", "", 60),
-    makeMilestone("The trip abroad", "", 65),
+    makeMilestone("Bicycle", "", 60),
+    makeMilestone("A big trip", "", 65),
   ];
 }
 
