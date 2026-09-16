@@ -1,4 +1,5 @@
-/* Tab bar and check-in control. Both recede so the roadmap stays the focus. */
+/* Tab bar and the roadmap's bottom action. Both recede so the roadmap stays the
+   focus. */
 
 .tabbar {
   flex: none;
@@ -38,13 +39,16 @@
   letter-spacing: 0.01em;
 }
 
-.checkin {
+/* One slot, whichever action it holds: check in, or add the first reward. Its
+   height must not depend on which, or the bottom-anchored roadmap would shift
+   when one replaces the other. Both are a single line of the same type. */
+.action {
   flex: none;
   padding: 0.75rem var(--gutter) 0.9rem;
   background: var(--bg);
 }
 
-.checkin__btn {
+.action__btn {
   width: 100%;
   border: 1px solid var(--edge-strong);
   border-radius: var(--r-full);
@@ -62,14 +66,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.checkin__btn--done {
+.action__btn--done {
   background: transparent;
   border-color: var(--edge);
   color: var(--text-faint);
   cursor: default;
 }
 
-.checkin__check svg {
+/* Smaller than the line box either label sets, so no icon drives the height. */
+.action__btn svg {
   width: 1.05rem;
   height: 1.05rem;
   display: block;

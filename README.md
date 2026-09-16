@@ -115,10 +115,10 @@ Development behaves differently on purpose, all of it gated on
   something real to judge scrolling against
 
 A production build opens on an **empty roadmap**. Naming rewards is personal, so
-a real roadmap starts empty rather than presuming someone else's. That first
-screen carries its own full-width **Add a reward** button, which creates a
-reward and opens the editor on it, so the first one never costs a trip to
-Settings.
+a real roadmap starts empty rather than presuming someone else's. Until the
+first reward exists there is nothing to check in against, so the bottom control
+offers **Add a reward** in the check-in button's place: it creates a reward and
+opens the editor on it, and the first one never costs a trip to Settings.
 
 ## Deploying
 

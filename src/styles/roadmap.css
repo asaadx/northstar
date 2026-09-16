@@ -24,52 +24,6 @@
   margin-top: auto;
 }
 
-/* Vertically centered as a block, but stretched edge to edge inside the gutter
-   so the button below can run the full width of the screen. */
-.roadmap__empty {
-  margin: auto;
-  width: 100%;
-  padding: 0 var(--gutter);
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-/* Its own inset: the sentence reads better narrower than the button it sits on. */
-.roadmap__empty-text {
-  margin: 0;
-  padding: 0 0.75rem;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 0.95rem;
-}
-
-/* Deliberately the check-in button's shape: on an empty roadmap this is the one
-   thing to press, and it takes that control's place in the eye. */
-.roadmap__add {
-  width: 100%;
-  border: 1px solid var(--edge-strong);
-  border-radius: var(--r-full);
-  background: var(--surface-raised);
-  color: var(--text);
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.98rem;
-  padding: 0.95rem 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.roadmap__add svg {
-  width: 1.1rem;
-  height: 1.1rem;
-  display: block;
-}
-
 /* -------------------------------------------------------------- row */
 
 /* Pinned to the node so the stretch below starts exactly at the node's edge.
