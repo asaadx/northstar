@@ -11,11 +11,12 @@
  * upward with a cushion so it never has to reach the edge to be caught.
  */
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
 import { useNorthstar } from "../store";
 import type { ActiveMilestone } from "../state";
 import Connector, { markerFraction } from "./Connector";
+import MilestoneEditor from "./MilestoneEditor";
 import MilestoneNode from "./MilestoneNode";
 import { SPRING, UNLOCK, DUR } from "../motion";
 import "../styles/roadmap.css";
@@ -41,8 +42,9 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
 }
 
 export default function Roadmap() {
-  const { days, progress, milestones, next, event, claim } = useNorthstar();
+  const { days, progress, milestones, next, event, claim, addMilestone } = useNorthstar();
   const reducedMotion = useReducedMotion();
+  const [editorOpen, setEditorOpen] = useState(false);
   const northstarRef = useRef<HTMLDivElement | null>(null);
   const scrolledOnMount = useRef(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -93,126 +95,164 @@ export default function Roadmap() {
     });
   }, [next?.milestone.id, progress.fraction, reducedMotion]);
 
+  // The sheet is a sibling of the scroller in both branches, so React keeps one
+  // instance across the empty-to-built flip. Mounted inside the empty pane it
+  // would unmount the moment the first reward existed — mid-rename — and on iOS
+  // a fixed child of a `-webkit-overflow-scrolling: touch` scroller misbehaves.
+  const editor = <MilestoneEditor open={editorOpen} onClose={() => setEditorOpen(false)} />;
+
   if (milestones.length === 0) {
     return (
-      <div className="roadmap">
-        <div className="track">
-          <p className="roadmap__empty">
-            No rewards yet. Add them under Settings, then the road builds itself.
-          </p>
+      <>
+        <div className="roadmap">
+          <div className="track">
+            <div className="roadmap__empty">
+              <p className="roadmap__empty-text">No rewards yet. Add the first and the road builds itself.</p>
+              <motion.button
+                type="button"
+                className="roadmap__add"
+                transition={{ duration: DUR.press }}
+                {...(reducedMotion ? {} : { whileTap: { scale: 0.97 } })}
+                onClick={() => {
+                  // Create the reward here, then open the editor on it. A plus
+                  // that only revealed another "Add reward" button would be a
+                  // longer walk than the trip to Settings it exists to replace.
+                  addMilestone("New reward");
+                  setEditorOpen(true);
+                }}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+                Add a reward
+              </motion.button>
+            </div>
+          </div>
         </div>
-      </div>
+        {editor}
+      </>
     );
   }
 
   const reversed = [...milestones].reverse();
 
   return (
-    <div className="roadmap" ref={scrollerRef}>
-      <LayoutGroup>
-        <div className="track">
-          {reversed.map((entry) => {
-            const traveled = entry.requirement <= days;
-            const active = next !== null && entry.milestone.id === next.milestone.id;
-            const justUnlocked = event?.type === "unlock" && event.milestoneId === entry.milestone.id;
-            const justClaimed = event?.type === "claim" && event.milestoneId === entry.milestone.id;
-            const side = labelSideFor(entry.index);
-            // The road bows away from the reward text, and the day label rides the inside
-            // of that bow, so numerals never sit over the curve.
-            const bendSide = oppositeSide(side);
-            // The furthest reward is the northstar. Nothing attaches above it,
-            // so unlike a row it may stand taller than a node.
-            const isNorthstar = entry.index === milestones.length - 1;
+    <>
+      <div className="roadmap" ref={scrollerRef}>
+        <LayoutGroup>
+          <div className="track">
+            {reversed.map((entry) => {
+              const traveled = entry.requirement <= days;
+              const active = next !== null && entry.milestone.id === next.milestone.id;
+              const justUnlocked = event?.type === "unlock" && event.milestoneId === entry.milestone.id;
+              const justClaimed = event?.type === "claim" && event.milestoneId === entry.milestone.id;
+              const side = labelSideFor(entry.index);
+              // The road bows away from the reward text, and the day label rides the inside
+              // of that bow, so numerals never sit over the curve.
+              const bendSide = oppositeSide(side);
+              // The furthest reward is the northstar. Nothing attaches above it,
+              // so unlike a row it may stand taller than a node.
+              const isNorthstar = entry.index === milestones.length - 1;
 
-            return (
-              <div key={entry.milestone.id}>
-                {isNorthstar ? (
-                  <div className="northstar" ref={northstarRef}>
-                    <div className="northstar__label">
-                      <span className="northstar__title">Northstar</span>
-                      <span className="northstar__desc">{entry.milestone.reward}</span>
-                      <span className="northstar__days">
-                        {entry.requirement} {entry.requirement === 1 ? "day" : "days"}
-                      </span>
-                      {entry.status === "available" && (
-                        <motion.button
-                          type="button"
-                          className="claim"
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => claim(entry.milestone.id)}
-                        >
-                          Claim
-                        </motion.button>
-                      )}
-                      {entry.status === "claimed" && (
-                        <span className="northstar__status">Claimed</span>
-                      )}
+              return (
+                <div key={entry.milestone.id}>
+                  {isNorthstar ? (
+                    <div className="northstar" ref={northstarRef}>
+                      <div className="northstar__label">
+                        <span className="northstar__title">Northstar</span>
+                        <span className="northstar__desc">{entry.milestone.reward}</span>
+                        <span className="northstar__days">
+                          {entry.requirement} {entry.requirement === 1 ? "day" : "days"}
+                        </span>
+                        {entry.status === "available" && (
+                          <motion.button
+                            type="button"
+                            className="claim"
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => claim(entry.milestone.id)}
+                          >
+                            Claim
+                          </motion.button>
+                        )}
+                        {entry.status === "claimed" && (
+                          <span className="northstar__status">Claimed</span>
+                        )}
+                      </div>
+                      <motion.div
+                        className={
+                          entry.status === "locked" ? "northstar__mark" : "northstar__mark northstar__mark--reached"
+                        }
+                        animate={
+                          (justUnlocked || justClaimed) && !reducedMotion ? { scale: [1, 1.05, 1] } : { scale: 1 }
+                        }
+                        transition={{ duration: DUR.base, times: [0, 0.4, 1], ease: "easeOut" }}
+                      >
+                        <StarGlyph />
+                      </motion.div>
                     </div>
+                  ) : (
                     <motion.div
-                      className={
-                        entry.status === "locked" ? "northstar__mark" : "northstar__mark northstar__mark--reached"
-                      }
-                      animate={
-                        (justUnlocked || justClaimed) && !reducedMotion ? { scale: [1, 1.05, 1] } : { scale: 1 }
-                      }
-                      transition={{ duration: DUR.base, times: [0, 0.4, 1], ease: "easeOut" }}
+                      layout
+                      className="row"
                     >
-                      <StarGlyph />
+                      <div className="row__slot row__slot--left">
+                        {side === "left" && (
+                          <MilestoneLabel
+                            entry={entry}
+                            progressRemaining={progress.remaining}
+                            isNext={active}
+                            justUnlocked={!!justUnlocked}
+                            reducedMotion={!!reducedMotion}
+                            onClaim={() => claim(entry.milestone.id)}
+                          />
+                        )}
+                      </div>
+                      <MilestoneNode
+                        status={entry.status}
+                        justUnlocked={!!justUnlocked}
+                        justClaimed={!!justClaimed}
+                        image={entry.milestone.image}
+                      />
+                      <div className="row__slot row__slot--right">
+                        {side === "right" && (
+                          <MilestoneLabel
+                            entry={entry}
+                            progressRemaining={progress.remaining}
+                            isNext={active}
+                            justUnlocked={!!justUnlocked}
+                            reducedMotion={!!reducedMotion}
+                            onClaim={() => claim(entry.milestone.id)}
+                          />
+                        )}
+                      </div>
                     </motion.div>
-                  </div>
-                ) : (
-                  <motion.div
-                    layout
-                    className="row"
-                  >
-                    <div className="row__slot row__slot--left">
-                      {side === "left" && (
-                        <MilestoneLabel
-                          entry={entry}
-                          progressRemaining={progress.remaining}
-                          isNext={active}
-                          justUnlocked={!!justUnlocked}
-                          reducedMotion={!!reducedMotion}
-                          onClaim={() => claim(entry.milestone.id)}
-                        />
-                      )}
-                    </div>
-                    <MilestoneNode
-                      status={entry.status}
-                      justUnlocked={!!justUnlocked}
-                      justClaimed={!!justClaimed}
-                      image={entry.milestone.image}
-                    />
-                    <div className="row__slot row__slot--right">
-                      {side === "right" && (
-                        <MilestoneLabel
-                          entry={entry}
-                          progressRemaining={progress.remaining}
-                          isNext={active}
-                          justUnlocked={!!justUnlocked}
-                          reducedMotion={!!reducedMotion}
-                          onClaim={() => claim(entry.milestone.id)}
-                        />
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-                <Connector
-                  traveled={traveled}
-                  active={active}
-                  fraction={active ? progress.fraction : 0}
-                  days={active ? progress.banked : 0}
-                  markerSide={side}
-                  bendSide={bendSide}
-                  origin={entry.index === 0}
-                  gap={entry.milestone.gap}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </LayoutGroup>
-    </div>
+                  )}
+                  <Connector
+                    traveled={traveled}
+                    active={active}
+                    fraction={active ? progress.fraction : 0}
+                    days={active ? progress.banked : 0}
+                    markerSide={side}
+                    bendSide={bendSide}
+                    origin={entry.index === 0}
+                    gap={entry.milestone.gap}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </LayoutGroup>
+      </div>
+      {editor}
+    </>
   );
 }
 
