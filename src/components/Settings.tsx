@@ -6,7 +6,7 @@ import MilestoneEditor from "./MilestoneEditor";
 
 export default function Settings() {
   const store = useNorthstar();
-  const { days, progress, reset } = store;
+  const { days, progress, milestones, reset } = store;
   const [editorOpen, setEditorOpen] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
 
@@ -19,7 +19,11 @@ export default function Settings() {
         <span className="settings__unit">{days === 1 ? "day" : "days"}</span>
       </div>
       <p className="settings__meta">
-        {progress.remaining > 0 ? `${progress.remaining} to the next reward` : "Every reward unlocked."}
+        {milestones.length === 0
+          ? "No rewards yet."
+          : progress.remaining > 0
+            ? `${progress.remaining} to the next reward`
+            : "Every reward unlocked."}
       </p>
 
       <div className="set-row">
