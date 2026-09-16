@@ -118,6 +118,15 @@ export default function MilestoneEditor({ open, onClose }: Props) {
                       <label className="sheet__gap">
                         <span className="sheet__gap-text">After</span>
                         <input
+                          // Uncontrolled, like every field here: it commits on
+                          // blur rather than on every keystroke. But this is
+                          // the one value something else can change — deleting
+                          // a reward carries its gap onto this one — and a
+                          // `defaultValue` alone would keep showing the old
+                          // number. Keying on the gap remounts the field with
+                          // the new one; the user is never typing in it at the
+                          // time, because the change comes from a delete.
+                          key={milestone.gap}
                           className="sheet__input sheet__gap-input"
                           type="number"
                           min={1}
