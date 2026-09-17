@@ -42,29 +42,57 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
 
 export default function Roadmap() {
   const { days, progress, milestones, next, event, claim } = useNorthstar();
+  const empty = milestones.length === 0;
   const reducedMotion = useReducedMotion();
   const northstarRef = useRef<HTMLDivElement | null>(null);
-  const scrolledOnMount = useRef(false);
+  const positioned = useRef(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
-  useLayoutEffect(() => {
-    if (scrolledOnMount.current) return;
-    scrolledOnMount.current = true;
-    const scroller = scrollerRef.current;
-    if (scroller === null) return;
+  /**
+   * What the road looks like: which rewards, in what order, spaced how far
+   * apart. Anything that changes this changes where the marker sits.
+   */
+  const shape = milestones.map((entry) => `${entry.milestone.id}:${entry.milestone.gap}`).join(",");
 
+  // The opening position, and the only thing that reclaims it.
+  //
+  // Rewards can be added from this screen now, without the pane unmounting, and
+  // every one of them grows the road *above* the marker while the scroller
+  // stays where it was. Positioning once was not enough: the first reward
+  // arrived, the pane positioned against a one-reward road, and the five that
+  // followed pushed the marker back off the bottom edge — the editor closed on
+  // a view parked at scrollTop 0, looking at the furthest reward.
+  //
+  // So this runs on every change of shape. The opening pass is unconditional,
+  // as it always was. After that the marker is only reclaimed when it has been
+  // pushed out of sight, because editing must not yank the view of someone
+  // whose marker is already on screen.
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    // An empty roadmap has nothing to position against: no stretch to measure,
+    // no northstar to centre. Leave the opening pass armed for the first road.
+    if (scroller === null || empty) return;
+    const opening = !positioned.current;
+    positioned.current = true;
+
+    const rect = scroller.getBoundingClientRect();
     const y = markerViewportY(scroller, progress.fraction);
     if (y === null) {
       // Nothing left to walk, so rest on the goal it all led to.
-      northstarRef.current?.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
+      const goal = northstarRef.current;
+      if (goal === null) return;
+      const box = goal.getBoundingClientRect();
+      if (!opening && box.bottom > rect.top && box.top < rect.bottom) return;
+      goal.scrollIntoView({ block: "center", inline: "nearest", behavior: "auto" });
       return;
     }
 
-    const rect = scroller.getBoundingClientRect();
+    if (!opening && y > rect.top && y < rect.bottom) return;
     scroller.scrollTop += y - (rect.top + rect.height * REST_FRACTION);
-    // Runs once, on mount, against whatever the roadmap looks like at open.
+    // Keyed on shape alone: progress moves the marker within the road, and the
+    // effect below is what follows it there.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [shape, empty]);
 
   const lastFollowed = useRef<string | null>(null);
 
@@ -92,18 +120,6 @@ export default function Roadmap() {
       behavior: reducedMotion ? "auto" : "smooth",
     });
   }, [next?.milestone.id, progress.fraction, reducedMotion]);
-
-  if (milestones.length === 0) {
-    return (
-      <div className="roadmap">
-        <div className="track">
-          <p className="roadmap__empty">
-            No rewards yet. Add them under Settings, then the road builds itself.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   const reversed = [...milestones].reverse();
 

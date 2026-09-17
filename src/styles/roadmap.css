@@ -24,14 +24,6 @@
   margin-top: auto;
 }
 
-.roadmap__empty {
-  margin: auto;
-  padding: 0 2rem;
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 0.95rem;
-}
-
 /* -------------------------------------------------------------- row */
 
 /* Pinned to the node so the stretch below starts exactly at the node's edge.

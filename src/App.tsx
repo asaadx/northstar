@@ -1,9 +1,9 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { JSX } from "react";
 import { useState } from "react";
-import CheckInButton from "./components/CheckInButton";
 import History from "./components/History";
 import Roadmap from "./components/Roadmap";
+import RoadmapAction from "./components/RoadmapAction";
 import Settings from "./components/Settings";
 import TabBar, { type Tab } from "./components/TabBar";
 import { DUR, EASE_OUT } from "./motion";
@@ -30,12 +30,12 @@ export default function App(): JSX.Element {
         >
           {page}
           {/* Inside the keyed subtree on purpose. Outside it, React unmounted the
-              button the instant the tab changed, while the outgoing page was still
-              at full opacity: the column lost the button's height, the pane grew
+              control the instant the tab changed, while the outgoing page was still
+              at full opacity: the column lost the control's height, the pane grew
               into it, and the bottom-anchored roadmap jumped by exactly that much
               mid-exit. Here it leaves with the page it belongs to, so the shell's
               geometry cannot move under an animating page. */}
-          {tab === "roadmap" ? <CheckInButton /> : null}
+          {tab === "roadmap" ? <RoadmapAction /> : null}
         </motion.div>
       </AnimatePresence>
       <TabBar tab={tab} onChange={setTab} />

@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useNorthstar } from "../store";
 import { toRewardImage } from "../image";
@@ -13,11 +13,66 @@ function commitOnEnter(e: KeyboardEvent<HTMLInputElement>) {
   if (e.key === "Enter") e.currentTarget.blur();
 }
 
+/** Everything inside the sheet that can hold focus, in document order. */
+const FOCUSABLE = 'button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
 export default function MilestoneEditor({ open, onClose }: Props) {
   const store = useNorthstar();
   const { milestones, addMilestone, updateMilestone, removeMilestone, moveMilestone, totalDays } = store;
   const reducedMotion = useReducedMotion();
   const [armedId, setArmedId] = useState<string | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Whether the sheet has finished arriving. Until it has, nothing here accepts
+   * a press.
+   *
+   * The sheet can be opened by a button sitting exactly where it enters: the
+   * roadmap's "Add a reward". That press mounts the backdrop under the finger
+   * while the sheet is still translated off-screen, so a second press of the
+   * same spot used to land on the backdrop and dismiss the editor it had just
+   * opened — leaving a reward named "New reward" and no way back in. A press
+   * 50ms later again landed wherever the rising sheet happened to be, planting
+   * the caret in the name or the day count and, on a phone, the keyboard with
+   * it. The backdrop still swallows those presses, it just refuses to act on
+   * them; the sheet ignores them outright.
+   */
+  const [arrived, setArrived] = useState(false);
+
+  useEffect(() => {
+    if (!open) setArrived(false);
+  }, [open]);
+
+  // Focus the sheet itself, not a field: this is a modal, so the keyboard has
+  // to start inside it — the page behind holds a check-in button that banks a
+  // day — but nothing here should raise a phone keyboard uninvited.
+  useEffect(() => {
+    if (open) sheetRef.current?.focus({ preventScroll: true });
+  }, [open]);
+
+  /** Escape closes; Tab cycles, so focus cannot reach the page behind. */
+  function onSheetKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab") return;
+
+    const stops = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE));
+    const first = stops[0];
+    const last = stops[stops.length - 1];
+    if (first === undefined || last === undefined) return;
+
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || active === e.currentTarget)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
 
   return (
     <AnimatePresence>
@@ -29,14 +84,28 @@ export default function MilestoneEditor({ open, onClose }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: DUR.fast }}
-            onClick={onClose}
+            // Pressing the backdrop must not hand focus back to the page
+            // behind: a blur to <body> puts the next Tab on the check-in
+            // button, which banks a day on Enter.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={arrived ? onClose : undefined}
           />
           <motion.div
             className="sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Rewards"
+            tabIndex={-1}
+            ref={sheetRef}
+            onKeyDown={onSheetKeyDown}
+            style={{ pointerEvents: arrived ? "auto" : "none" }}
             initial={reducedMotion ? { opacity: 0 } : { y: "100%" }}
             animate={reducedMotion ? { opacity: 1 } : { y: 0 }}
             exit={reducedMotion ? { opacity: 0 } : { y: "100%" }}
             transition={reducedMotion ? { duration: DUR.fast } : { ...SPRING_SOFT }}
+            onAnimationComplete={() => {
+              if (open) setArrived(true);
+            }}
           >
             <div className="sheet__handle" />
             <div className="sheet__head">
