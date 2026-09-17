@@ -25,6 +25,9 @@ export default function MilestoneEditor({ open, onClose, focusId = null }: Props
   const [armedId, setArmedId] = useState<string | null>(null);
   const sheetRef = useRef<HTMLDivElement | null>(null);
 
+  /** Opened on one reward rather than on the list. */
+  const single = focusId !== null;
+
   /**
    * Whether the sheet has finished arriving. Until it has, nothing here accepts
    * a press.
@@ -52,13 +55,14 @@ export default function MilestoneEditor({ open, onClose, focusId = null }: Props
     if (open) sheetRef.current?.focus({ preventScroll: true });
   }, [open]);
 
-  // Opened on one reward: bring that row into view. The ring stays for the life
-  // of the sheet, so which of thirteen rows the tap meant is never in doubt.
+  // The reward being edited can be deleted from this very sheet, and then there
+  // is nothing left for it to be about: an empty sheet with a Done button.
+  // Leave with it.
   useEffect(() => {
     if (!open || focusId === null) return;
-    const row = sheetRef.current?.querySelector<HTMLElement>(`[data-milestone="${focusId}"]`);
-    row?.scrollIntoView({ block: "center", behavior: "auto" });
-  }, [open, focusId]);
+    if (milestones.some((entry) => entry.milestone.id === focusId)) return;
+    onClose();
+  }, [open, focusId, milestones, onClose]);
 
   // Escape closes from wherever focus happens to be. Bound to the window, not
   // the sheet, because the row holding focus can be deleted out from under it:
@@ -114,7 +118,7 @@ export default function MilestoneEditor({ open, onClose, focusId = null }: Props
             className="sheet"
             role="dialog"
             aria-modal="true"
-            aria-label="Rewards"
+            aria-label={single ? "Reward" : "Rewards"}
             tabIndex={-1}
             ref={sheetRef}
             onKeyDown={onSheetKeyDown}
@@ -140,7 +144,7 @@ export default function MilestoneEditor({ open, onClose, focusId = null }: Props
           >
             <div className="sheet__handle" />
             <div className="sheet__head">
-              <div className="sheet__title">Rewards</div>
+              <div className="sheet__title">{single ? "Reward" : "Rewards"}</div>
               <button type="button" className="link-btn" onClick={onClose}>
                 Done
               </button>
@@ -150,10 +154,14 @@ export default function MilestoneEditor({ open, onClose, focusId = null }: Props
               {milestones.map((entry, i) => {
                 const { milestone, requirement } = entry;
                 const armed = armedId === milestone.id;
+                // Opened on one reward: that reward is the whole sheet. The
+                // other twelve rows are not context, they are noise. Still
+                // walking the full list, because `i` is what tells the reorder
+                // arrows where this reward actually sits.
+                if (single && milestone.id !== focusId) return null;
                 return (
                   <motion.div
-                    className={milestone.id === focusId ? "sheet__row sheet__row--target" : "sheet__row"}
-                    data-milestone={milestone.id}
+                    className="sheet__row"
                     key={milestone.id}
                     layout={!reducedMotion}
                     transition={{ duration: DUR.base, ease: EASE_OUT }}
@@ -312,12 +320,19 @@ export default function MilestoneEditor({ open, onClose, focusId = null }: Props
               })}
             </AnimatePresence>
 
-            <div className="sheet__total">
-              Northstar at {totalDays} {totalDays === 1 ? "day" : "days"}
-            </div>
-            <button type="button" className="sheet__add" onClick={() => addMilestone("New reward")}>
-              Add reward
-            </button>
+            {/* Both belong to the list, not to a reward: the northstar's
+                distance is every gap added up, and adding a reward here would
+                create a row this sheet is not showing. */}
+            {single ? null : (
+              <>
+                <div className="sheet__total">
+                  Northstar at {totalDays} {totalDays === 1 ? "day" : "days"}
+                </div>
+                <button type="button" className="sheet__add" onClick={() => addMilestone("New reward")}>
+                  Add reward
+                </button>
+              </>
+            )}
           </motion.div>
         </>
       ) : null}
