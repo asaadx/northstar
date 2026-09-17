@@ -40,7 +40,12 @@ function markerViewportY(scroller: HTMLElement, fraction: number): number | null
   return rect.bottom - markerFraction(fraction, rect.height) * rect.height;
 }
 
-export default function Roadmap() {
+type RoadmapProps = {
+  /** Opens the reward editor on one reward. */
+  onEditReward: (milestoneId: string) => void;
+};
+
+export default function Roadmap({ onEditReward }: RoadmapProps) {
   const { days, progress, milestones, next, event, claim } = useNorthstar();
   const empty = milestones.length === 0;
   const reducedMotion = useReducedMotion();
@@ -164,17 +169,20 @@ export default function Roadmap() {
                         <span className="northstar__status">Claimed</span>
                       )}
                     </div>
-                    <motion.div
+                    <motion.button
+                      type="button"
                       className={
                         entry.status === "locked" ? "northstar__mark" : "northstar__mark northstar__mark--reached"
                       }
+                      aria-label={`Edit ${entry.milestone.reward}`}
+                      onClick={() => onEditReward(entry.milestone.id)}
                       animate={
                         (justUnlocked || justClaimed) && !reducedMotion ? { scale: [1, 1.05, 1] } : { scale: 1 }
                       }
                       transition={{ duration: DUR.base, times: [0, 0.4, 1], ease: "easeOut" }}
                     >
                       <StarGlyph />
-                    </motion.div>
+                    </motion.button>
                   </div>
                 ) : (
                   <motion.div
@@ -198,6 +206,8 @@ export default function Roadmap() {
                       justUnlocked={!!justUnlocked}
                       justClaimed={!!justClaimed}
                       image={entry.milestone.image}
+                      onEdit={() => onEditReward(entry.milestone.id)}
+                      label={entry.milestone.reward}
                     />
                     <div className="row__slot row__slot--right">
                       {side === "right" && (

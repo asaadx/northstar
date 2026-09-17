@@ -7,6 +7,8 @@ import { DUR, EASE_OUT, SPRING_SOFT } from "../motion";
 type Props = {
   open: boolean;
   onClose: () => void;
+  /** Reward to open on: its row is scrolled into view and ringed. Null shows the list as a whole. */
+  focusId?: string | null;
 };
 
 function commitOnEnter(e: KeyboardEvent<HTMLInputElement>) {
@@ -16,7 +18,7 @@ function commitOnEnter(e: KeyboardEvent<HTMLInputElement>) {
 /** Everything inside the sheet that can hold focus, in document order. */
 const FOCUSABLE = 'button:not(:disabled), input:not(:disabled), [tabindex]:not([tabindex="-1"])';
 
-export default function MilestoneEditor({ open, onClose }: Props) {
+export default function MilestoneEditor({ open, onClose, focusId = null }: Props) {
   const store = useNorthstar();
   const { milestones, addMilestone, updateMilestone, removeMilestone, moveMilestone, totalDays } = store;
   const reducedMotion = useReducedMotion();
@@ -50,13 +52,31 @@ export default function MilestoneEditor({ open, onClose }: Props) {
     if (open) sheetRef.current?.focus({ preventScroll: true });
   }, [open]);
 
-  /** Escape closes; Tab cycles, so focus cannot reach the page behind. */
-  function onSheetKeyDown(e: KeyboardEvent<HTMLDivElement>) {
-    if (e.key === "Escape") {
+  // Opened on one reward: bring that row into view. The ring stays for the life
+  // of the sheet, so which of thirteen rows the tap meant is never in doubt.
+  useEffect(() => {
+    if (!open || focusId === null) return;
+    const row = sheetRef.current?.querySelector<HTMLElement>(`[data-milestone="${focusId}"]`);
+    row?.scrollIntoView({ block: "center", behavior: "auto" });
+  }, [open, focusId]);
+
+  // Escape closes from wherever focus happens to be. Bound to the window, not
+  // the sheet, because the row holding focus can be deleted out from under it:
+  // removing a focused element moves focus to <body> without firing blur, so a
+  // handler that only hears keys inside the sheet would go deaf.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: globalThis.KeyboardEvent): void {
+      if (e.key !== "Escape") return;
       e.preventDefault();
       onClose();
-      return;
     }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  /** Tab cycles, so focus cannot reach the page behind. Escape is on the window. */
+  function onSheetKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (e.key !== "Tab") return;
 
     const stops = Array.from(e.currentTarget.querySelectorAll<HTMLElement>(FOCUSABLE));
@@ -98,6 +118,17 @@ export default function MilestoneEditor({ open, onClose }: Props) {
             tabIndex={-1}
             ref={sheetRef}
             onKeyDown={onSheetKeyDown}
+            // Enter commits a field by blurring it (`commitOnEnter`), which
+            // dropped focus to <body> — outside the dialog, where Escape no
+            // longer reached it and a stray Tab could find the page behind.
+            // Tapping a reward on the road opens straight onto that flow, so
+            // anything leaving the sheet comes back to it.
+            onBlur={(e) => {
+              if (!open) return;
+              const next: Node | null = e.relatedTarget;
+              if (next !== null && e.currentTarget.contains(next)) return;
+              sheetRef.current?.focus({ preventScroll: true });
+            }}
             style={{ pointerEvents: arrived ? "auto" : "none" }}
             initial={reducedMotion ? { opacity: 0 } : { y: "100%" }}
             animate={reducedMotion ? { opacity: 1 } : { y: 0 }}
@@ -121,7 +152,8 @@ export default function MilestoneEditor({ open, onClose }: Props) {
                 const armed = armedId === milestone.id;
                 return (
                   <motion.div
-                    className="sheet__row"
+                    className={milestone.id === focusId ? "sheet__row sheet__row--target" : "sheet__row"}
+                    data-milestone={milestone.id}
                     key={milestone.id}
                     layout={!reducedMotion}
                     transition={{ duration: DUR.base, ease: EASE_OUT }}
@@ -257,6 +289,13 @@ export default function MilestoneEditor({ open, onClose }: Props) {
                           if (armed) {
                             removeMilestone(milestone.id);
                             setArmedId(null);
+                            // This button leaves with its row, and a focused
+                            // element that is removed takes focus to <body>
+                            // silently — no blur, nothing for the guard above
+                            // to catch. Hand it back before that happens; the
+                            // row's exit animation makes any later check a
+                            // race.
+                            sheetRef.current?.focus({ preventScroll: true });
                           } else {
                             setArmedId(milestone.id);
                           }
