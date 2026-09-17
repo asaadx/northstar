@@ -6,9 +6,11 @@
  *    `checkIn` action, once per local calendar day. It never advances because
  *    time passed while the app was closed: there is no elapsed-time anchor.
  *  - `milestones` is ordered nearest-first. The active roadmap is the subset
- *    with `archived === false`; an active milestone's requirement is derived
- *    purely from its position in that subset, which is what makes a reset
- *    renumber the remaining milestones (old 14-day node becomes the 7-day one).
+ *    with `archived === false`; an active milestone's requirement is the
+ *    running sum of the gaps up to and including its own. Anything that leaves
+ *    that subset carries its gap onto the next survivor, so the rewards that
+ *    stay keep the days they already stood on: neither a reset nor a deletion
+ *    reschedules a reward the user did not touch.
  *  - A milestone moves through three states: locked -> available -> claimed.
  *    Unlocking (`available`) is purely a function of `days` versus the
  *    milestone's requirement. Claiming is a separate, deliberate act that
@@ -285,18 +287,55 @@ export function claimReward(state: State, id: string, now: Date): State {
 }
 
 /**
+ * New gaps for the milestones that survive `departing`, keyed by id, with each
+ * departing gap carried onto the next survivor. Only ids whose gap changes
+ * appear.
+ *
+ * A requirement is the running sum of the gaps ahead of it, so a gap that
+ * leaves the active chain has to land somewhere or every reward behind it
+ * moves: drop the 7-day reward and the 14-day one would become a 10-day one,
+ * rescheduling a promise the user never touched. Carrying the gap forward
+ * keeps every survivor on the day it already stood on. A carry with nothing
+ * left to absorb it belonged to the final stretch, and the northstar simply
+ * moves nearer.
+ */
+function carriedGaps(milestones: Milestone[], departing: (m: Milestone) => boolean): Map<string, number> {
+  const carried = new Map<string, number>();
+  let carry = 0;
+  for (const m of milestones) {
+    if (m.archived) continue;
+    if (departing(m)) {
+      carry += m.gap;
+      continue;
+    }
+    if (carry > 0) {
+      carried.set(m.id, m.gap + carry);
+      carry = 0;
+    }
+  }
+  return carried;
+}
+
+/**
  * Explicit reset. Archives every *claimed* milestone (hidden, retained),
  * clears the day count, and starts a new run. Milestones that were never
- * claimed stay and renumber, so the next one becomes the 7-day target.
+ * claimed stay on the road at the same distance: the gaps of the departing
+ * rewards carry onto the next survivor, so a 21-day reward is still a 21-day
+ * reward on the new run.
  */
 export function resetStreak(state: State, now: Date): State {
-  const hasClaimed = state.milestones.some((m) => !m.archived && m.claimedAt !== null);
-  if (!hasClaimed && state.days === 0 && state.lastCheckIn === null) return state;
+  const departing = (m: Milestone) => !m.archived && m.claimedAt !== null;
+  if (!state.milestones.some(departing) && state.days === 0 && state.lastCheckIn === null) return state;
 
   const stamp = now.toISOString();
+  const carried = carriedGaps(state.milestones, departing);
   const milestones = state.milestones.map((m) => {
-    if (m.archived || m.claimedAt === null) return m;
-    return { ...m, archived: true, archivedAt: stamp, archivedRun: state.run, archivedDays: state.days };
+    if (m.archived) return m;
+    if (departing(m)) {
+      return { ...m, archived: true, archivedAt: stamp, archivedRun: state.run, archivedDays: state.days };
+    }
+    const gap = carried.get(m.id);
+    return gap === undefined ? m : { ...m, gap };
   });
 
   return { ...state, milestones, days: 0, lastCheckIn: null, run: state.run + 1 };
@@ -326,8 +365,30 @@ export function updateMilestone(state: State, id: string, patch: MilestonePatch)
   };
 }
 
+/**
+ * Delete a reward outright: claimed or not, note, picture and claim record with
+ * it, so History forgets it too. The destructive counterpart to a reset, which
+ * retains what was claimed — this is the user saying the reward itself was a
+ * mistake. The rewards around it do not move; the deleted gap carries onto the
+ * next one.
+ */
 export function removeMilestone(state: State, id: string): State {
-  return { ...state, milestones: state.milestones.filter((m) => m.id !== id) };
+  const target = state.milestones.find((m) => m.id === id);
+  if (target === undefined) return state;
+
+  const carried = target.archived
+    ? new Map<string, number>()
+    : carriedGaps(state.milestones, (m) => m.id === id);
+
+  return {
+    ...state,
+    milestones: state.milestones
+      .filter((m) => m.id !== id)
+      .map((m) => {
+        const gap = carried.get(m.id);
+        return gap === undefined ? m : { ...m, gap };
+      }),
+  };
 }
 
 /**

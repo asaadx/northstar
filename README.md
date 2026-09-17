@@ -48,9 +48,15 @@ Each milestone moves through three states:
 Unlocking is automatic and derived. Claiming is a separate, deliberate act.
 
 **Reset** archives every claimed milestone, clears the day count, and starts a
-new run. Milestones never claimed stay on the road and renumber, so the old
-14-day node becomes the 7-day one. Archived milestones are never deleted; they
-are what History reads.
+new run. Milestones never claimed stay on the road *at the same distance*: each
+departing reward's gap carries onto the next survivor, so a 21-day reward is
+still a 21-day reward on the new run. Archived milestones are never deleted;
+they are what History reads.
+
+**Deleting** a reward in the editor is the destructive counterpart. It goes for
+good — note, picture and claim record with it — and History forgets it, because
+deleting says the reward itself was a mistake, where a reset says the run was.
+The rewards around it keep their distances, for the same reason a reset does.
 
 **History** groups claimed rewards by run, newest first, and shows the day count
 each run reached. Runs closed before that was recorded show no count rather
