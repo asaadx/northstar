@@ -180,6 +180,12 @@
   overflow: hidden;
 }
 
+/* A separator earns its keep between rows. On the last one — and a sheet opened
+   on a single reward has exactly one — it is a line under nothing. */
+.sheet__row:last-of-type {
+  border-bottom: 0;
+}
+
 .sheet__lead {
   display: flex;
   flex-direction: column;

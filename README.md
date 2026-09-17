@@ -58,6 +58,12 @@ good — note, picture and claim record with it — and History forgets it, beca
 deleting says the reward itself was a mistake, where a reset says the run was.
 The rewards around it keep their distances, for the same reason a reset does.
 
+**Editing** starts from the road itself: tap a reward's circle, or the
+northstar, and the editor opens on that reward and nothing else. The other
+twelve rows are not context, they are noise. Settings opens the same editor on
+the whole list, which is where reordering and the northstar's total belong, and
+so does the bottom slot when there are no rewards yet.
+
 **History** groups claimed rewards by run, newest first, and shows the day count
 each run reached. Runs closed before that was recorded show no count rather
 than a fabricated zero.

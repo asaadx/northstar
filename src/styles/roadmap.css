@@ -64,6 +64,19 @@
   display: grid;
   place-items: center;
   flex: none;
+  /* It is a button now: tapping a reward edits it. Every status modifier sets
+     its own background and border, so only the remaining user-agent button
+     styling needs clearing. */
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.node:focus-visible,
+.northstar__mark:focus-visible {
+  outline: 2px solid var(--text-dim);
+  outline-offset: 4px;
 }
 
 .node--locked {
@@ -169,6 +182,14 @@
   display: grid;
   place-items: center;
   color: var(--text-faint);
+  /* Also a button, and unlike a node it has no background or border of its own
+     to override the user agent's. */
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .northstar__mark--reached {

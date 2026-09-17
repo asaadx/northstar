@@ -2,6 +2,10 @@
  * A single roadmap circle: locked, available to claim, or claimed. The
  * glyph inside transitions rather than swaps. The status change itself
  * carries the moment via CSS; motion here only smooths the edges.
+ *
+ * The circle is also the way into the editor: tapping a reward edits it. The
+ * label beside it cannot be the target, because it already holds the Claim
+ * button and a button cannot nest inside one.
  */
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -16,9 +20,13 @@ type MilestoneNodeProps = {
   justClaimed: boolean;
   /** Data URL for the reward's picture, or null when none was chosen. */
   image: string | null;
+  /** Opens the reward editor on this milestone. */
+  onEdit: () => void;
+  /** The reward's name, for the control's accessible label. */
+  label: string;
 };
 
-export default function MilestoneNode({ status, justUnlocked, justClaimed, image }: MilestoneNodeProps) {
+export default function MilestoneNode({ status, justUnlocked, justClaimed, image, onEdit, label }: MilestoneNodeProps) {
   const reducedMotion = useReducedMotion();
 
   const pulse =
@@ -39,12 +47,19 @@ export default function MilestoneNode({ status, justUnlocked, justClaimed, image
     status === "locked" ? "closed" : image !== null ? null : status === "available" ? "open" : "check";
 
   return (
-    <motion.div className={`node node--${status}`} animate={pulse} transition={transition}>
+    <motion.button
+      type="button"
+      className={`node node--${status}`}
+      animate={pulse}
+      transition={transition}
+      onClick={onEdit}
+      aria-label={`Edit ${label}`}
+    >
       {image !== null && <img className="node__image" src={image} alt="" />}
       <AnimatePresence initial={false}>
         {glyph !== null && <Glyph key={glyph} kind={glyph} reducedMotion={!!reducedMotion} />}
       </AnimatePresence>
-    </motion.div>
+    </motion.button>
   );
 }
 
